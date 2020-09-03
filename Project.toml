@@ -1,0 +1,7 @@
+name = "VectorEngine"
+uuid = "466ee4d4-9101-4c4d-b8fc-4a5416b3306a"
+authors = ["Valentin Churavy <v.churavy@gmail.com>"]
+version = "0.1.0"
+
+[compat]
+julia = "1.6"
