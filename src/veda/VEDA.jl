@@ -17,8 +17,8 @@ module VEDA
                 write(io_o, obj)
                 flush(io_o)
                 vso = path_o*".vso"
-                # Make sure this is the right linker
-                run(`ld -shared -o $vso $path_o`)
+                # Hardcoded linker path: from binutils-ve
+                run(`/opt/nec/ve/bin/nld -shared -o $vso $path_o`)
                 vso
             end
 
