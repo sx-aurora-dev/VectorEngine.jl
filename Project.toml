@@ -3,5 +3,9 @@ uuid = "466ee4d4-9101-4c4d-b8fc-4a5416b3306a"
 authors = ["Valentin Churavy <v.churavy@gmail.com>"]
 version = "0.1.0"
 
+[deps]
+CEnum = "fa961155-64e5-5f13-b03f-caf6b980ea82"
+GPUCompiler = "61eb1bfa-7361-4325-ad38-22787b887f55"
+
 [compat]
 julia = "1.6"

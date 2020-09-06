@@ -1,20 +1,24 @@
 using Clang
 
-function wrap_component(include, name)
-    HEADERS = [joinpath(include, header) for header in readdir(include)
-               if (startswith(header, name) && endswith(header, ".h"))]
+# Only wrap VEDA for now since VERA requires C++
+INCLUDE_PATH = "/usr/local/ve/veda/include"
 
-    wc = init(; headers = HEADERS,
-                output_file = joinpath(@__DIR__, "lib$(name).jl"),
-                common_file = joinpath(@__DIR__, "lib$(name)_common.jl"),
-                clang_includes = vcat(include, CLANG_INCLUDE),
-                clang_args = ["-I", include],
-                header_wrapped = (root, current)->root == current,
-                header_library = x->"lib$(name)",
-                clang_diagnostics = true,
-                )
-    run(wc)
-end
+HEADERS = [
+    "veda.h",
+    "veda_types.h",
+    "veda_enums.h",
+]
+HEADERS = map(h->joinpath(INCLUDE_PATH, h), HEADERS)
+NAME = "veda"
 
-wrap_component("/usr/local/ve/veda/include", "veda")
-wrap_component("/usr/local/ve/veda/include", "vera")
+wc = init(; headers = HEADERS,
+            output_file = joinpath(@__DIR__, "lib$(NAME).jl"),
+            common_file = joinpath(@__DIR__, "lib$(NAME)_common.jl"),
+            clang_includes = vcat(INCLUDE_PATH, CLANG_INCLUDE),
+            clang_args = ["-I", INCLUDE_PATH],
+            header_wrapped = (root, current)->  current == root,
+            header_library = x->"lib$(NAME)",
+            clang_diagnostics = true,
+            )
+run(wc)
+

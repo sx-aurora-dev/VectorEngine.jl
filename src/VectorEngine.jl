@@ -1,5 +1,3 @@
 module VectorEngine
-
-greet() = print("Hello World!")
-
+    include("veda/VEDA.jl")
 end # module
