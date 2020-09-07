@@ -3,6 +3,13 @@ module VEDA
 
     export VEModule, VEFunction, VEContext
 
+    # Hardcoded linker path: from binutils-ve
+    const nld_path = "/opt/nec/ve/bin/nld"
+    # Hadrcoded device library path.
+    const libvesa_vso = "/usr/local/ve/veda/libve/libveda.vso"
+
+    # TODO: Find these at build time.
+
     mutable struct VEContext
         handle::API.VEDAcontext
 
@@ -16,38 +23,31 @@ module VEDA
         end
     end
 
-    const pctx = Ref{VEContext}()
-
-    function __init__()
-        # TODO: Do a lazy init
-        API.vedaInit(0)
-        pctx[] = VEContext(0)
-        API.vedaCtxSetCurrent(pctx[].handle)
-        atexit(API.vedaExit)
-    end
-
     mutable struct VEModule
         handle::API.VEDAmodule
 
-        function VEModule(obj)
-            vso = mktemp() do path_o, io_o
-                write(io_o, obj)
-                flush(io_o)
-                vso = path_o*".vso"
-                # Hardcoded linker path: from binutils-ve
-                run(`/opt/nec/ve/bin/nld -shared -o $vso $path_o`)
-                vso
-            end
-
+        function VEModule(vso::String)
             r_handle = Ref{API.VEDAmodule}()
             API.vedaModuleLoad(r_handle, vso)
             mod = new(r_handle[])
             finalizer(mod) do mod
                 API.vedaModuleUnload(mod.handle)
-                rm(vso)
             end
             return mod
         end
+    end
+
+    function VEModule(obj::Array{UInt8})
+        vso = mktemp() do path_o, io_o
+            write(io_o, obj)
+            flush(io_o)
+            vso = path_o*".vso"
+            run(`$nld_path -shared -o $vso $path_o`)
+            vso
+        end
+        mod = VEModule(vso)
+        rm(vso)
+        mod
     end
 
     mutable struct VEFunction
@@ -59,5 +59,20 @@ module VEDA
             API.vedaModuleGetFunction(r_handle, mod.handle, fname)
             new(r_handle[], mod)
         end
+    end
+
+    const pctx = Ref{VEContext}()
+
+    ## VEDA device library
+    const libcache = Base.WeakKeyDict{VEContext, VEModule}()
+
+    function __init__()
+        # TODO: Do a lazy init
+        API.vedaInit(0)
+        ctx = VEContext(0)
+        pctx[] = ctx
+        API.vedaCtxSetCurrent(ctx.handle)
+        libcache[ctx] = VEModule(libvesa_vso)
+        atexit(API.vedaExit)
     end
 end # module
