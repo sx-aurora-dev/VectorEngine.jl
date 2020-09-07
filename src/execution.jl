@@ -31,6 +31,8 @@ end
     end
 end
 
+isghosttype(dt) = !dt.mutable && sizeof(dt) == 0
+
 """
     vefunction(f, tt=Tuple{}; kwargs...)
 
