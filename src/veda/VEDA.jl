@@ -37,7 +37,7 @@ module VEDA
         end
     end
 
-    function VEModule(obj::Array{UInt8})
+    function VEModule(obj::Base.CodeUnits{UInt8, String})
         vso = mktemp() do path_o, io_o
             write(io_o, obj)
             flush(io_o)
