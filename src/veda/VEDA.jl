@@ -38,7 +38,7 @@ module VEDA
         mod::VEModule
 
         function VEFunction(mod, fname)
-            r_handle = Ref{API.VEDAfunction}
+            r_handle = Ref{API.VEDAfunction}()
             API.vedaModuleGetFunction(r_handle, mod.handle, fname)
             new(r_handle[], mod)
         end
