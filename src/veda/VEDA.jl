@@ -1,11 +1,28 @@
 module VEDA
     include("api.jl")
 
-    export VEModule, VEFunction
+    export VEModule, VEFunction, VEContext
+
+    mutable struct VEContext
+        handle::API.VEDAcontext
+
+        function VEContext(dev)
+            r_handle = Ref{API.VEDAcontext}()
+            API.vedaDevicePrimaryCtxRetain(r_handle, dev)
+            ctx = new(r_handle[])
+            finalizer(ctx) do ctx
+                API.vedaDevicePrimaryCtxRelease(ctx.handle)
+            end
+        end
+    end
+
+    const pctx = Ref{VEContext}()
 
     function __init__()
         # TODO: Do a lazy init
         API.vedaInit(0)
+        pctx[] = VEContext(0)
+        API.vedaCtxSetCurrent(pctx[].handle)
         atexit(API.vedaExit)
     end
 
