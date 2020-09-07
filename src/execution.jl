@@ -65,3 +65,7 @@ end
 
 # https://github.com/JuliaLang/julia/issues/14919
 (kernel::HostKernel)(args...; kwargs...) = call(kernel, args...; kwargs...)
+
+@inline function vecall(kernel::HostKernel, tt, args...; kwargs...)
+    VEDA.vecall(kernel.fun, tt, args...; kwargs...,)
+end

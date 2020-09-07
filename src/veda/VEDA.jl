@@ -61,6 +61,8 @@ module VEDA
         end
     end
 
+    include("execution.jl")
+
     const pctx = Ref{VEContext}()
 
     ## VEDA device library
