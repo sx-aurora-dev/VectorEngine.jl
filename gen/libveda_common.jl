@@ -2,9 +2,9 @@
 
 
 const VEDAdevice = Cint
-const VEDAdeviceptr = Cint
+const VEDAdeviceptr = UInt64
 const veo_args = Cvoid
-const VEDAfunction = Cint
+const VEDAfunction = UInt64
 const VEDAcontext = Ptr{__VEDAcontext}
 const VEDAmodule = Ptr{__VEDAmodule}
 const VEDAstream = Cint
