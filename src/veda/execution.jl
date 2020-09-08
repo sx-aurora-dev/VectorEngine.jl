@@ -2,53 +2,53 @@ struct VEArgs
     handle::API.VEDAargs
 end
 
-function Base.setindex!(args::VEArgs, idx::Integer, val::Float32)
-    API.vedaArgsSetF32(args.handle, idx, val)
+function Base.setindex!(args::VEArgs, val::Float32, idx::Integer)
+    API.vedaArgsSetF32(args.handle, idx - 1, val)
     val
 end
 
-function Base.setindex!(args::VEArgs, idx::Integer, val::Float64)
-    API.vedaArgsSetF64(args.handle, idx, val)
+function Base.setindex!(args::VEArgs, val::Float64, idx::Integer)
+    API.vedaArgsSetF64(args.handle, idx - 1, val)
     val
 end
 
-function Base.setindex!(args::VEArgs, idx::Integer, val::Int8)
-    API.vedaArgsSetI8(args.handle, idx, val)
+function Base.setindex!(args::VEArgs, val::Int8, idx::Integer)
+    API.vedaArgsSetI8(args.handle, idx - 1, val)
     val
 end
 
-function Base.setindex!(args::VEArgs, idx::Integer, val::Int16)
-    API.vedaArgsSetI16(args.handle, idx, val)
+function Base.setindex!(args::VEArgs, val::Int16, idx::Integer)
+    API.vedaArgsSetI16(args.handle, idx - 1, val)
     val
 end
 
-function Base.setindex!(args::VEArgs, idx::Integer, val::Int32)
-    API.vedaArgsSetI32(args.handle, idx, val)
+function Base.setindex!(args::VEArgs, val::Int32, idx::Integer)
+    API.vedaArgsSetI32(args.handle, idx - 1, val)
     val
 end
 
-function Base.setindex!(args::VEArgs, idx::Integer, val::Int64)
-    API.vedaArgsSetI64(args.handle, idx, val)
+function Base.setindex!(args::VEArgs, val::Int64, idx::Integer)
+    API.vedaArgsSetI64(args.handle, idx - 1, val)
     val
 end
 
-function Base.setindex!(args::VEArgs, idx::Integer, val::UInt8)
-    API.vedaArgsSetU8(args.handle, idx, val)
+function Base.setindex!(args::VEArgs, val::UInt8, idx::Integer)
+    API.vedaArgsSetU8(args.handle, idx - 1, val)
     val
 end
 
-function Base.setindex!(args::VEArgs, idx::Integer, val::UInt16)
-    API.vedaArgsSetU16(args.handle, idx, val)
+function Base.setindex!(args::VEArgs, val::UInt16, idx::Integer)
+    API.vedaArgsSetU16(args.handle, idx - 1, val)
     val
 end
 
-function Base.setindex!(args::VEArgs, idx::Integer, val::UInt32)
-    API.vedaArgsSetU32(args.handle, idx, val)
+function Base.setindex!(args::VEArgs, val::UInt32, idx::Integer)
+    API.vedaArgsSetU32(args.handle, idx - 1, val)
     val
 end
 
-function Base.setindex!(args::VEArgs, idx::Integer, val::UInt64)
-    API.vedaArgsSetU64(args.handle, idx, val)
+function Base.setindex!(args::VEArgs, val::UInt64, idx::Integer)
+    API.vedaArgsSetU64(args.handle, idx - 1, val)
     val
 end
 
