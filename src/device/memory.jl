@@ -5,5 +5,5 @@ export malloc, free
 end
 
 @inline function free(ptr::Ptr{Cvoid})
-    ccall("extern malloc", llvmcall, Cvoid, (Ptr{Cvoid},), ptr)
+    ccall("extern free", llvmcall, Cvoid, (Ptr{Cvoid},), ptr)
 end
