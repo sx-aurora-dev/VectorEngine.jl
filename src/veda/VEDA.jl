@@ -5,8 +5,6 @@ module VEDA
 
     # Hardcoded linker path: from binutils-ve
     const nld_path = "/opt/nec/ve/bin/nld"
-    # Hadrcoded device library path.
-    const libvesa_vso = "/usr/local/ve/veda/libve/libveda.vso"
 
     # TODO: Find these at build time.
 
@@ -74,7 +72,6 @@ module VEDA
         ctx = VEContext(0)
         pctx[] = ctx
         API.vedaCtxSetCurrent(ctx.handle)
-        libcache[ctx] = VEModule(libvesa_vso)
         atexit(API.vedaExit)
     end
 end # module
