@@ -52,8 +52,21 @@ function Base.setindex!(args::VEArgs, val::UInt64, idx::Integer)
     val
 end
 
-# VEDAresult	vedaArgsSetPtr				(VEDAargs args, const int idx, const VEDAdeviceptr value);
-# VEDAresult	vedaArgsSetStack			(VEDAargs args, const int idx, void* ptr, VEDAargs_intent intent, const size_t size);
+# VEDAresult	vedaArgsSetPtr		(VEDAargs args, const int idx, const VEDAdeviceptr value);
+# This is actually the same as UInt64, no need to implement it
+
+# VEDAresult	vedaArgsSetStack	(VEDAargs args, const int idx, void* ptr, VEDAargs_intent intent, const size_t size);
+# Pass array or string variables on stack.
+# - passing IN (VH to VE) works for example with strings
+# - passing back is untested
+# - it's unclear how to differentiate between passing in and out
+# - "val" should be protected from GC until the actual call (for passing INTENT_IN)
+# TODO: replace the "Any" type by something more appropriate
+function Base.setindex!(args::VEArgs, val::Any, idx::Integer)
+    API.vedaArgsSetStack(args.handle, idx - 1, Base.unsafe_convert(Ptr{Cvoid}, pointer(val)),
+                         API.VEDA_ARGS_INTENT_INOUT, sizeof(val))
+    val
+end
 
 function vecall(func::VEFunction, tt, args...; stream = C_NULL)
     r_args = Ref{API.VEDAargs}()
@@ -68,4 +81,3 @@ function vecall(func::VEFunction, tt, args...; stream = C_NULL)
 
     API.vedaLaunchKernelEx(func.handle, stream, veargs.handle, #=destroyArgs=# true)
 end
-
