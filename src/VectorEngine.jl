@@ -10,6 +10,7 @@ module VectorEngine
 
     # Device sources must load _before_ the compiler infrastructure
     # because of generated functions.
+    include(joinpath("device", "output.jl"))
     include(joinpath("device", "runtime.jl"))
     include(joinpath("device", "strings.jl"))
 
