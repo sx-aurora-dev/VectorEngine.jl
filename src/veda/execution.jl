@@ -52,20 +52,24 @@ function Base.setindex!(args::VEArgs, val::UInt64, idx::Integer)
     val
 end
 
-# VEDAresult	vedaArgsSetPtr		(VEDAargs args, const int idx, const VEDAdeviceptr value);
-# This is actually the same as UInt64, no need to implement it
-
-# VEDAresult	vedaArgsSetStack	(VEDAargs args, const int idx, void* ptr, VEDAargs_intent intent, const size_t size);
-# Pass array or string variables on stack.
-# - passing IN (VH to VE) works for example with strings
-# - passing back is untested
-# - it's unclear how to differentiate between passing in and out
-# - "val" should be protected from GC until the actual call (for passing INTENT_IN)
-# TODO: replace the "Any" type by something more appropriate
-function Base.setindex!(args::VEArgs, val::Any, idx::Integer)
+# Pass string variables on stack. Expect Ptr{...} on the VE side.
+# - immutable, therefore only INTENT_IN
+function Base.setindex!(args::VEArgs, val::T, idx::Integer) where {T<:AbstractString}
     API.vedaArgsSetStack(args.handle, idx - 1, Base.unsafe_convert(Ptr{Cvoid}, pointer(val)),
-                         API.VEDA_ARGS_INTENT_INOUT, sizeof(val))
+                         API.VEDA_ARGS_INTENT_IN, sizeof(val))
     val
+end
+
+# Pass structs on stack. If immutable, modified elements can be passed back, too.
+function Base.setindex!(args::VEArgs, val::T, idx::Integer) where {T}
+    if isstructtype(T)
+        API.vedaArgsSetStack(args.handle, idx - 1, Ref(val),
+            ismutable(val) ? API.VEDA_ARGS_INTENT_INOUT : API.VEDA_ARGS_INTENT_IN,
+            sizeof(val))
+        val
+    else
+        nothing
+    end
 end
 
 function vecall(func::VEFunction, tt, args...; stream = C_NULL)
