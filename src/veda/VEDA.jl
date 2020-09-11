@@ -68,6 +68,8 @@ module VEDA
 
     function __init__()
         isempty(API.libveda) && return
+        # limiting to one core for now, as we're not using OpenMP
+        ENV["VE_OMP_NUM_THREADS"] = 1
         # TODO: Do a lazy init
         API.vedaInit(0)
         ctx = VEContext(0)
