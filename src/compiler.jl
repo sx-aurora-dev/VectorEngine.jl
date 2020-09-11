@@ -12,6 +12,6 @@ GPUCompiler.isintrinsic(job::VECompilerJob, fn::String) =
 
 # For now, completely disable the check for isbitstype arguments
 # TODO: find a better way to identify arguments that can be passed on stack
-function GPUCompiler.check_invocation(@nospecialize(job::CompilerJob), entry::LLVM.Function)
+function GPUCompiler.check_invocation(job::VECompilerJob, entry::LLVM.Function)
     return
 end
