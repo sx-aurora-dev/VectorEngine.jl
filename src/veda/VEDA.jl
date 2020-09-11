@@ -67,6 +67,7 @@ module VEDA
     const libcache = Base.WeakKeyDict{VEContext, VEModule}()
 
     function __init__()
+        isempty(API.libveda) && return
         # TODO: Do a lazy init
         API.vedaInit(0)
         ctx = VEContext(0)
