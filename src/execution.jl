@@ -16,8 +16,10 @@ end
     # alternatively, allow `launch` with non-isbits arguments.
     for (i,dt) in enumerate(call_t)
         if !isbitstype(dt)
-            call_t[i] = Ptr{Any}
-            call_args[i] = :C_NULL
+            # Enable passing non-isbitstype on stack
+            # TODO: find better way to identify types that actually can be passed
+            #call_t[i] = Ptr{Any}
+            #call_args[i] = :C_NULL
         end
     end
 
@@ -37,7 +39,7 @@ isghosttype(dt) = !dt.mutable && sizeof(dt) == 0
     vefunction(f, tt=Tuple{}; kwargs...)
 
 Low-level interface to compile a function invocation, returning
-a callable kernel object. 
+a callable kernel object.
 - `name`: override the name that the kernel will have in the generated code
 The output of this function is automatically cached, i.e. you can simply call `vefunction`
 in a hot path without degrading performance. New code will be generated automatically, when
