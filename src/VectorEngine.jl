@@ -7,6 +7,9 @@ module VectorEngine
     using .VEDA
 
     # Device and Memory management
+    include("pointer.jl")
+    include("stream.jl")
+    include("memory.jl")
 
     # Device sources must load _before_ the compiler infrastructure
     # because of generated functions.
@@ -20,5 +23,5 @@ module VectorEngine
     include("execution.jl")
     include("reflection.jl")
 
-    # High-level functionality    
+    # High-level functionality
 end # module
