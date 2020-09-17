@@ -19,6 +19,6 @@ vepsm = VectorEngine.vefunction(pass_struct!, Tuple{xm})
 a = xm(1, 100)
 
 vepsm(a)
-VectorEngine.VEDA.API.vedaCtxSynchronize()
+VectorEngine.vesync()
 
 a

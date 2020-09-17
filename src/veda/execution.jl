@@ -131,5 +131,26 @@ function vecall(func::VEFunction, tt, args...; stream = C_NULL)
 
     # TOOD: Can we add a callback that will do args cleanup?
     err = API.vedaLaunchKernelEx(func.handle, stream, veargs.handle, #=destroyArgs=# true)
+    if err != API.VEDA_SUCCESS
+        throw(VEOCommandError("kernel launch failed"))
+    end
     err, veargs
+end
+
+struct VEContextException <: Exception
+    reason::String
+end
+struct VEOCommandError <: Exception
+    reason::String
+end
+
+# synchronize a stream
+# throw an exception if something went very wrong
+function vesync(; stream = C_NULL)
+    err = API.vedaStreamSynchronize(stream)
+    if err == API.VEDA_ERROR_VEO_COMMAND_EXCEPTION
+        throw(VEContextException("VE context died with an exception"))
+    elseif err == API.VEDA_ERROR_VEO_COMMAND_ERROR
+        throw(VEOCommandError("VH side VEO command error"))
+    end
 end

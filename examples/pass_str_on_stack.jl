@@ -13,4 +13,4 @@ end
 veps = VectorEngine.vefunction(pass_string, Tuple{Ptr{UInt8}})
 veps("1234567890abcdefghij")
 
-VectorEngine.VEDA.API.vedaCtxSynchronize()
+VectorEngine.vesync()

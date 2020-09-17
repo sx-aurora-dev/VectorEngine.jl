@@ -15,4 +15,4 @@ vefunc = VectorEngine.vefunction(kernel)
 # Launch kernel
 vefunc()
 
-VectorEngine.VEDA.API.vedaCtxSynchronize()
+VectorEngine.vesync()

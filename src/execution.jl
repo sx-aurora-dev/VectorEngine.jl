@@ -73,3 +73,7 @@ end
 @inline function vecall(kernel::HostKernel, tt, args...; kwargs...)
     VEDA.vecall(kernel.fun, tt, args...; kwargs...,)
 end
+
+@inline function vesync(; kwargs...)
+    VEDA.vesync(; kwargs...)
+end
