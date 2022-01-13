@@ -23,3 +23,4 @@ override LLVM_EXPERIMENTAL_TARGETS_TO_BUILD=VE
 override LLVM_TARGETS=host;WebAssembly
 ```
 
+Now run `make`.
