@@ -9,7 +9,8 @@ end
 
 # VE side function that modifies the struct
 function pass_struct!(r::xm)
-    r.m = r.m + 1
+    @veshow(r.x); @veshow(r.m)
+    r.m = r.m + 1; @veshow(r.m)
     return
 end
 

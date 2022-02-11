@@ -1,4 +1,7 @@
-struct VECompilerParams <: AbstractCompilerParams end
+struct VECompilerParams <: AbstractCompilerParams
+    device::Int32
+    global_hooks::NamedTuple
+end
 
 const VECompilerJob = CompilerJob{VECompilerTarget, VECompilerParams}
 

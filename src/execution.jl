@@ -33,29 +33,7 @@ end
     end
 end
 
-isghosttype(dt) = !dt.mutable && sizeof(dt) == 0
-
-# old # function vefunction(f::Core.Function, tt::Type=Tuple{}; name=nothing, kernel=true, kwargs...)
-# old #     source = FunctionSpec(f, tt, kernel, name)
-# old #     GPUCompiler.cached_compilation(_vefunction, source; kwargs...)::HostKernel{f,tt}
-# old # end
-# old # 
-# old # # actual compilation
-# old # function _vefunction(source::FunctionSpec; kwargs...)
-# old #     # compile to GCN
-# old #     target = VECompilerTarget()
-# old #     params = VECompilerParams()
-# old #     job = CompilerJob(target, source, params)
-# old #     obj, kernel_fn, undefined_fns, undefined_gbls = GPUCompiler.compile(:obj, job)
-# old # 
-# old #     # create executable and kernel
-# old #     obj = codeunits(obj)
-# old #     mod = VEModule(obj)
-# old #     fun = VEFunction(mod, kernel_fn)
-# old #     kernel = HostKernel{source.f,source.tt}(mod, fun)
-# old # 
-# old #     return kernel
-# old # end
+isghosttype(dt) = !ismutable(dt) && sizeof(dt) == 0
 
 """
     vefunction(f, tt=Tuple{}; kwargs...)
@@ -77,13 +55,12 @@ function vefunction(f::Core.Function, tt::Type=Tuple{}; name=nothing, device=0, 
     cache = get!(()->Dict{UInt,Any}(), vefunction_cache, device)
     #isa = default_isa(device)
     target = VECompilerTarget()
-    params = VECompilerParams()
+    params = VECompilerParams(device, global_hooks)
     job = CompilerJob(target, source, params)
     GPUCompiler.cached_compilation(cache, job, vefunction_compile, vefunction_link)::HostKernel{f,tt}
 end
 
 const vefunction_cache = Dict{UInt,Dict{UInt,Any}}()
-
 
 function vefunction_compile(@nospecialize(job::CompilerJob))
     # compile
@@ -108,8 +85,7 @@ function vefunction_link(@nospecialize(job::CompilerJob), compiled)
 
     # create executable and kernel
     obj = codeunits(obj)
-    #exe = create_executable(device, entry, obj; globals=globals)
-    mod = VEModule(exe)
+    mod = VEModule(obj)
     fun = VEFunction(mod, entry)
     kernel = HostKernel{job.source.f,job.source.tt}(mod, fun)
 
