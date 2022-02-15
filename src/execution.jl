@@ -1,14 +1,15 @@
-struct HostKernel{F,TT}
+struct DeviceKernel{F,TT}
     mod::VEModule
     fun::VEFunction
 end
 
-@generated function call(kernel::HostKernel{F,TT}, args...; call_kwargs...) where {F,TT}
+@generated function call(kernel::DeviceKernel{F,TT}, args...; call_kwargs...) where {F,TT}
     sig = Base.signature_type(F, TT)
     args = (:F, (:( args[$i] ) for i in 1:length(args))...)
 
     # filter out ghost arguments that shouldn't be passed
-    to_pass = map(!isghosttype, sig.parameters)
+    predicate = dt -> isghosttype(dt) || Core.Compiler.isconstType(dt)
+    to_pass = map(!predicate, sig.parameters)
     call_t =                  Type[x[1] for x in zip(sig.parameters,  to_pass) if x[2]]
     call_args = Union{Expr,Symbol}[x[1] for x in zip(args, to_pass)            if x[2]]
 
@@ -18,13 +19,14 @@ end
         if !isbitstype(dt)
             # Enable passing non-isbitstype on stack
             # TODO: find better way to identify types that actually can be passed
-            #call_t[i] = Ptr{Any}
-            #call_args[i] = :C_NULL
+            call_t[i] = Ptr{Any}
+            call_args[i] = :C_NULL
         end
     end
 
     # finalize types
     call_tt = Base.to_tuple_type(call_t)
+    @show call_tt
 
     quote
         Base.@_inline_meta
@@ -57,7 +59,7 @@ function vefunction(f::Core.Function, tt::Type=Tuple{}; name=nothing, device=0, 
     target = VECompilerTarget()
     params = VECompilerParams(device, global_hooks)
     job = CompilerJob(target, source, params)
-    GPUCompiler.cached_compilation(cache, job, vefunction_compile, vefunction_link)::HostKernel{f,tt}
+    GPUCompiler.cached_compilation(cache, job, vefunction_compile, vefunction_link)::DeviceKernel{f,tt}
 end
 
 const vefunction_cache = Dict{UInt,Dict{UInt,Any}}()
@@ -67,6 +69,7 @@ function vefunction_compile(@nospecialize(job::CompilerJob))
     method_instance, mi_meta = GPUCompiler.emit_julia(job)
     ir, ir_meta = GPUCompiler.emit_llvm(job, method_instance)
     kernel = ir_meta.entry
+    #@show ir
 
     obj, obj_meta = GPUCompiler.emit_asm(job, ir; format=LLVM.API.LLVMObjectFile)
 
@@ -87,7 +90,7 @@ function vefunction_link(@nospecialize(job::CompilerJob), compiled)
     obj = codeunits(obj)
     mod = VEModule(obj)
     fun = VEFunction(mod, entry)
-    kernel = HostKernel{job.source.f,job.source.tt}(mod, fun)
+    kernel = DeviceKernel{job.source.f,job.source.tt}(mod, fun)
 
     # initialize globals from hooks
     for gname in first.(globals)
@@ -113,9 +116,9 @@ end
 
 
 # https://github.com/JuliaLang/julia/issues/14919
-(kernel::HostKernel)(args...; kwargs...) = call(kernel, args...; kwargs...)
+(kernel::DeviceKernel)(args...; kwargs...) = call(kernel, args...; kwargs...)
 
-@inline function vecall(kernel::HostKernel, tt, args...; kwargs...)
+@inline function vecall(kernel::DeviceKernel, tt, args...; kwargs...)
     VEDA.vecall(kernel.fun, tt, args...; kwargs...,)
 end
 

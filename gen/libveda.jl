@@ -38,6 +38,14 @@ function vedaArgsSetPtr(args, idx, value)
     ccall((:vedaArgsSetPtr, libveda), VEDAresult, (VEDAargs, Cint, VEDAdeviceptr), args, idx, value)
 end
 
+function vedaArgsSetVPtr(args, idx, value)
+    ccall((:vedaArgsSetVPtr, libveda), VEDAresult, (VEDAargs, Cint, VEDAdeviceptr), args, idx, value)
+end
+
+function vedaArgsSetHMEM(args, idx, value)
+    ccall((:vedaArgsSetHMEM, libveda), VEDAresult, (VEDAargs, Cint, Ptr{Cvoid}), args, idx, value)
+end
+
 function vedaArgsSetStack(args, idx, ptr, intent, size)
     ccall((:vedaArgsSetStack, libveda), VEDAresult, (VEDAargs, Cint, Ptr{Cvoid}, VEDAargs_intent, Csize_t), args, idx, ptr, intent, size)
 end
@@ -102,8 +110,16 @@ function vedaCtxSynchronize()
     ccall((:vedaCtxSynchronize, libveda), VEDAresult, ())
 end
 
+function vedaDeviceDistance(distance, devA, devB)
+    ccall((:vedaDeviceDistance, libveda), VEDAresult, (Ptr{Cfloat}, VEDAdevice, VEDAdevice), distance, devA, devB)
+end
+
 function vedaDeviceGet(device, ordinal)
     ccall((:vedaDeviceGet, libveda), VEDAresult, (Ptr{VEDAdevice}, Cint), device, ordinal)
+end
+
+function vedaDeviceGetAVEOId(id, dev)
+    ccall((:vedaDeviceGetAVEOId, libveda), VEDAresult, (Ptr{Cint}, VEDAdevice), id, dev)
 end
 
 function vedaDeviceGetAttribute(pi, attrib, dev)
@@ -114,8 +130,24 @@ function vedaDeviceGetCount(count)
     ccall((:vedaDeviceGetCount, libveda), VEDAresult, (Ptr{Cint},), count)
 end
 
+function vedaDeviceGetCurrent(current, dev)
+    ccall((:vedaDeviceGetCurrent, libveda), VEDAresult, (Ptr{Cfloat}, VEDAdevice), current, dev)
+end
+
+function vedaDeviceGetCurrentEdge(current, dev)
+    ccall((:vedaDeviceGetCurrentEdge, libveda), VEDAresult, (Ptr{Cfloat}, VEDAdevice), current, dev)
+end
+
+function vedaDeviceGetNUMAId(id, dev)
+    ccall((:vedaDeviceGetNUMAId, libveda), VEDAresult, (Ptr{Cint}, VEDAdevice), id, dev)
+end
+
 function vedaDeviceGetName(name, len, dev)
     ccall((:vedaDeviceGetName, libveda), VEDAresult, (Cstring, Cint, VEDAdevice), name, len, dev)
+end
+
+function vedaDeviceGetPhysicalId(id, dev)
+    ccall((:vedaDeviceGetPhysicalId, libveda), VEDAresult, (Ptr{Cint}, VEDAdevice), id, dev)
 end
 
 function vedaDeviceGetPower(power, dev)
@@ -124,6 +156,14 @@ end
 
 function vedaDeviceGetTemp(tempC, coreIdx, dev)
     ccall((:vedaDeviceGetTemp, libveda), VEDAresult, (Ptr{Cfloat}, Cint, VEDAdevice), tempC, coreIdx, dev)
+end
+
+function vedaDeviceGetVoltage(voltage, dev)
+    ccall((:vedaDeviceGetVoltage, libveda), VEDAresult, (Ptr{Cfloat}, VEDAdevice), voltage, dev)
+end
+
+function vedaDeviceGetVoltageEdge(voltage, dev)
+    ccall((:vedaDeviceGetVoltageEdge, libveda), VEDAresult, (Ptr{Cfloat}, VEDAdevice), voltage, dev)
 end
 
 function vedaDevicePrimaryCtxGetState(dev, flags, active)
@@ -182,8 +222,8 @@ function vedaLaunchKernel(f, stream, arg1)
     ccall((:vedaLaunchKernel, libveda), VEDAresult, (VEDAfunction, VEDAstream, VEDAargs), f, stream, arg1)
 end
 
-function vedaLaunchKernelEx(f, stream, arg1, destroyArgs)
-    ccall((:vedaLaunchKernelEx, libveda), VEDAresult, (VEDAfunction, VEDAstream, VEDAargs, Cint), f, stream, arg1, destroyArgs)
+function vedaLaunchKernelEx(f, stream, arg1, destroyArgs, checkResult)
+    ccall((:vedaLaunchKernelEx, libveda), VEDAresult, (VEDAfunction, VEDAstream, VEDAargs, Cint, Cint), f, stream, arg1, destroyArgs, checkResult)
 end
 
 function vedaMemAlloc(ptr, size)
@@ -230,12 +270,36 @@ function vedaMemGetInfo(free, total)
     ccall((:vedaMemGetInfo, libveda), VEDAresult, (Ptr{Csize_t}, Ptr{Csize_t}), free, total)
 end
 
-function vedaMemGetRawPointer(rawPtr, vptr)
-    ccall((:vedaMemGetRawPointer, libveda), VEDAresult, (Ptr{Ptr{Cvoid}}, VEDAdeviceptr), rawPtr, vptr)
+function vedaMemHMEM(ptr, vptr)
+    ccall((:vedaMemHMEM, libveda), VEDAresult, (Ptr{Ptr{Cvoid}}, VEDAdeviceptr), ptr, vptr)
+end
+
+function vedaMemHMEMSize(ptr, size, vptr)
+    ccall((:vedaMemHMEMSize, libveda), VEDAresult, (Ptr{Ptr{Cvoid}}, Ptr{Csize_t}, VEDAdeviceptr), ptr, size, vptr)
+end
+
+function vedaMemPtr(ptr, vptr)
+    ccall((:vedaMemPtr, libveda), VEDAresult, (Ptr{Ptr{Cvoid}}, VEDAdeviceptr), ptr, vptr)
+end
+
+function vedaMemPtrSize(ptr, size, vptr)
+    ccall((:vedaMemPtrSize, libveda), VEDAresult, (Ptr{Ptr{Cvoid}}, Ptr{Csize_t}, VEDAdeviceptr), ptr, size, vptr)
 end
 
 function vedaMemReport()
     ccall((:vedaMemReport, libveda), VEDAresult, ())
+end
+
+function vedaMemSize(size, ptr)
+    ccall((:vedaMemSize, libveda), VEDAresult, (Ptr{Csize_t}, VEDAdeviceptr), size, ptr)
+end
+
+function vedaMemSwap(A, B)
+    ccall((:vedaMemSwap, libveda), VEDAresult, (VEDAdeviceptr, VEDAdeviceptr), A, B)
+end
+
+function vedaMemSwapAsync(A, B, hStream)
+    ccall((:vedaMemSwapAsync, libveda), VEDAresult, (VEDAdeviceptr, VEDAdeviceptr, VEDAstream), A, B, hStream)
 end
 
 function vedaMemcpy(dst, src, ByteCount)
@@ -270,12 +334,28 @@ function vedaMemcpyHtoDAsync(dstDevice, srcHost, ByteCount, hStream)
     ccall((:vedaMemcpyHtoDAsync, libveda), VEDAresult, (VEDAdeviceptr, Ptr{Cvoid}, Csize_t, VEDAstream), dstDevice, srcHost, ByteCount, hStream)
 end
 
+function vedaMemsetD128(dstDevice, x, y, N)
+    ccall((:vedaMemsetD128, libveda), VEDAresult, (VEDAdeviceptr, UInt64, UInt64, Csize_t), dstDevice, x, y, N)
+end
+
+function vedaMemsetD128Async(dstDevice, x, u, N, hStream)
+    ccall((:vedaMemsetD128Async, libveda), VEDAresult, (VEDAdeviceptr, UInt64, UInt64, Csize_t, VEDAstream), dstDevice, x, u, N, hStream)
+end
+
 function vedaMemsetD16(dstDevice, us, N)
     ccall((:vedaMemsetD16, libveda), VEDAresult, (VEDAdeviceptr, UInt16, Csize_t), dstDevice, us, N)
 end
 
 function vedaMemsetD16Async(dstDevice, us, N, hStream)
     ccall((:vedaMemsetD16Async, libveda), VEDAresult, (VEDAdeviceptr, UInt16, Csize_t, VEDAstream), dstDevice, us, N, hStream)
+end
+
+function vedaMemsetD2D128(dstDevice, dstPitch, x, y, Width, Height)
+    ccall((:vedaMemsetD2D128, libveda), VEDAresult, (VEDAdeviceptr, Csize_t, UInt64, UInt64, Csize_t, Csize_t), dstDevice, dstPitch, x, y, Width, Height)
+end
+
+function vedaMemsetD2D128Async(dstDevice, dstPitch, x, y, Width, Height, hStream)
+    ccall((:vedaMemsetD2D128Async, libveda), VEDAresult, (VEDAdeviceptr, Csize_t, UInt64, UInt64, Csize_t, Csize_t, VEDAstream), dstDevice, dstPitch, x, y, Width, Height, hStream)
 end
 
 function vedaMemsetD2D16(dstDevice, dstPitch, us, Width, Height)
@@ -292,6 +372,14 @@ end
 
 function vedaMemsetD2D32Async(dstDevice, dstPitch, ui, Width, Height, hStream)
     ccall((:vedaMemsetD2D32Async, libveda), VEDAresult, (VEDAdeviceptr, Csize_t, UInt32, Csize_t, Csize_t, VEDAstream), dstDevice, dstPitch, ui, Width, Height, hStream)
+end
+
+function vedaMemsetD2D64(dstDevice, dstPitch, ul, Width, Height)
+    ccall((:vedaMemsetD2D64, libveda), VEDAresult, (VEDAdeviceptr, Csize_t, UInt64, Csize_t, Csize_t), dstDevice, dstPitch, ul, Width, Height)
+end
+
+function vedaMemsetD2D64Async(dstDevice, dstPitch, ul, Width, Height, hStream)
+    ccall((:vedaMemsetD2D64Async, libveda), VEDAresult, (VEDAdeviceptr, Csize_t, UInt64, Csize_t, Csize_t, VEDAstream), dstDevice, dstPitch, ul, Width, Height, hStream)
 end
 
 function vedaMemsetD2D8(dstDevice, dstPitch, uc, Width, Height)
@@ -357,5 +445,14 @@ end
 # Automatically generated using Clang.jl
 
 # Julia wrapper for header: veda_enums.h
+# Automatically generated using Clang.jl
+
+# Julia wrapper for header: veda_device.h
+# Automatically generated using Clang.jl
+
+# Julia wrapper for header: veda_device_omp.h
+# Automatically generated using Clang.jl
+
+# Julia wrapper for header: veda_ptr.h
 # Automatically generated using Clang.jl
 

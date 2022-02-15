@@ -1,3 +1,11 @@
+# code reflection entry-points
+
+# forward the rest to GPUCompiler with an appropriate CompilerJob
+
+#
+# code_* replacements
+#
+
 for method in (:code_typed, :code_warntype, :code_llvm, :code_native)
     # only code_typed doesn't take an io argument
     args = method == :code_typed ? (:job,) : (:io, :job)

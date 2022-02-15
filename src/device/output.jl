@@ -2,7 +2,11 @@
 # Taken from CUDA src/device/intrinsics/output.jl
 #
 
-export @veprintf
+export @veprint, @veprintf, _veprintf, @veshow, _veprint, puts
+
+@inline function puts(str)
+    ccall("extern puts", llvmcall, Int32, (Ptr{UInt8},), str)
+end
 
 @generated function promote_c_argument(arg)
     # > When a function with a variable-length argument list is called, the variable
@@ -11,7 +15,7 @@ export @veprintf
     # > automatically promoted to double. Therefore, varargs functions will never receive
     # > arguments of type char, short int, or float.
 
-    if arg == Cchar || arg == Cshort
+    if arg == Cchar || arg == Cshort || arg == Cuchar || arg == Cushort
         return :(Cint(arg))
     elseif arg == Cfloat
         return :(Cdouble(arg))
@@ -38,7 +42,7 @@ macro veprintf(fmt::String, args...)
 end
 
 @generated function _veprintf(::Val{fmt}, argspec...) where {fmt}
-    JuliaContext() do ctx
+    Context() do ctx
         arg_exprs = [:( argspec[$i] ) for i in 1:length(argspec)]
         arg_types = [argspec...]
 
@@ -47,13 +51,13 @@ end
         T_pint8 = LLVM.PointerType(LLVM.Int8Type(ctx))
 
         # create functions
-        param_types = LLVMType[convert(LLVMType, typ, ctx) for typ in arg_types]
+        param_types = LLVMType[convert(LLVMType, typ; ctx) for typ in arg_types]
         llvm_f, _ = create_function(T_int32, param_types)
         mod = LLVM.parent(llvm_f)
 
         # generate IR
         Builder(ctx) do builder
-            entry = BasicBlock(llvm_f, "entry", ctx)
+            entry = BasicBlock(llvm_f, "entry"; ctx)
             position!(builder, entry)
 
             str = globalstring_ptr!(builder, String(fmt))
@@ -62,7 +66,7 @@ end
             if isempty(argspec)
                 buffer = LLVM.PointerNull(T_pint8)
             else
-                argtypes = LLVM.StructType("printf_args", ctx)
+                argtypes = LLVM.StructType("printf_args"; ctx)
                 elements!(argtypes, param_types)
 
                 args = alloca!(builder, argtypes)
@@ -82,8 +86,7 @@ end
             ret!(builder, chars)
         end
 
-        arg_tuple = Expr(:tuple, arg_exprs...)
-        call_function(llvm_f, Int32, Tuple{arg_types...}, arg_tuple)
+        call_function(llvm_f, Int32, Tuple{arg_types...}, arg_exprs...)
     end
 end
 
@@ -95,9 +98,10 @@ export @veprint, @veprintln
 # simple conversions, defining an expression and the resulting argument type. nothing fancy,
 # `@veprint` pretty directly maps to `@veprintf`; we should just support `write(::IO)`.
 const veprint_conversions = Dict(
-    Float32     => (x->:(Float64($x)),             Float64),
-    Ptr{<:Any}  => (x->:(convert(Ptr{Cvoid}, $x)), Ptr{Cvoid}),
-    Bool        => (x->:(Int32($x)),               Int32),
+    Float32         => (x->:(Float64($x)),                  Float64),
+    Ptr{<:Any}      => (x->:(convert(Ptr{Cvoid}, $x)),      Ptr{Cvoid}),
+    LLVMPtr{<:Any}  => (x->:(reinterpret(Ptr{Cvoid}, $x)),  Ptr{Cvoid}),
+    Bool            => (x->:(Int32($x)),                    Int32),
 )
 
 # format specifiers
@@ -116,9 +120,10 @@ const veprint_specifiers = Dict(
     # other
     Cchar       => "%c",
     Ptr{Cvoid}  => "%p",
+    Cstring     => "%s",
 )
 
-@generated function _veprint(parts...)
+@inline @generated function _veprint(parts...)
     fmt = ""
     args = Expr[]
 
@@ -155,7 +160,6 @@ const veprint_specifiers = Dict(
     end
 
     quote
-        Base.@_inline_meta
         @veprintf($fmt, $(args...))
     end
 end
@@ -227,12 +231,13 @@ GPU analog of `Base.@show`. It comes with the same type restrictions as [`@vepri
 @veshow threadIdx().x
 ```
 """
-macro veshow(ex)
-    val = gensym("val")
-    s = string(ex)
-    quote
-        $val = $(esc(ex))
-        VectorEngine.@veprintln($(Expr(:string, s, " = ", val)))
-        $val
+
+macro veshow(exs...)
+    blk = Expr(:block)
+    for ex in exs
+        push!(blk.args, :(VectorEngine.@veprintln($(sprint(Base.show_unquoted,ex)*" = "),
+                                          begin local value = $(esc(ex)) end)))
     end
+    isempty(exs) || push!(blk.args, :value)
+    blk
 end

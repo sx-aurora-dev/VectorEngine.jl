@@ -1,6 +1,6 @@
 export malloc, free
 
-@inline function malloc(sz::Csize_t)
+@inline function malloc(sz::Csize_t)::Ptr{Cvoid}
     ccall("extern malloc", llvmcall, Ptr{Cvoid}, (Csize_t,), sz)
 end
 

@@ -7,6 +7,9 @@ HEADERS = [
     "veda.h",
     "veda_types.h",
     "veda_enums.h",
+    "veda_device.h",
+    "veda_device_omp.h",
+    "veda_ptr.h",
 ]
 HEADERS = map(h->joinpath(INCLUDE_PATH, h), HEADERS)
 NAME = "veda"

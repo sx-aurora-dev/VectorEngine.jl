@@ -2,7 +2,7 @@
 
 julia_version = "1.8.0-DEV.1486"
 manifest_format = "2.0"
-project_hash = "b41468ccd05f01e4f42b844e5a20a6c98f2948dd"
+project_hash = "ff244bfe0a501b9edca27da8aea0b48b01326948"
 
 [[deps.ArgTools]]
 uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
@@ -48,7 +48,7 @@ uuid = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 
 [[deps.JLLWrappers]]
 deps = ["Preferences"]
-git-tree-sha1 = "abc9885a7ca2052a736a600f7fa66209f96506e1"
+path = "dev/JLLWrappers"
 uuid = "692b3bcd-3c85-4b1f-b108-f13ce0eb3210"
 version = "1.4.1"
 

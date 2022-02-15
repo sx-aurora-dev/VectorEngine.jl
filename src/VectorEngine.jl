@@ -3,6 +3,8 @@ module VectorEngine
     using LLVM
     using LLVM.Interop
 
+    import Core: LLVMPtr
+
     include("veda/VEDA.jl")
     using .VEDA
 
@@ -13,9 +15,11 @@ module VectorEngine
 
     # Device sources must load _before_ the compiler infrastructure
     # because of generated functions.
+    include(joinpath("device", "tools.jl"))
     include(joinpath("device", "memory.jl"))
     include(joinpath("device", "output.jl"))
     include(joinpath("device", "runtime.jl"))
+    include(joinpath("device", "llvm.jl"))
     include(joinpath("device", "strings.jl"))
 
     # Compiler infrastructure

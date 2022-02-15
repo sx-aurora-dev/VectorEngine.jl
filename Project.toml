@@ -6,6 +6,7 @@ version = "0.1.0"
 [deps]
 CEnum = "fa961155-64e5-5f13-b03f-caf6b980ea82"
 GPUCompiler = "61eb1bfa-7361-4325-ad38-22787b887f55"
+JLLWrappers = "692b3bcd-3c85-4b1f-b108-f13ce0eb3210"
 LLVM = "929cbde3-209d-540e-8aea-75f648917ca0"
 LLVMExtra_jll = "dad2f222-ce93-54a1-a47d-0025e8a3acab"
 Libdl = "8f399da3-3557-5675-b5ff-fb832c97cbdb"

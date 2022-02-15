@@ -75,6 +75,6 @@ module VEDA
         ctx = VEContext(0)
         pctx[] = ctx
         API.vedaCtxSetCurrent(ctx.handle)
-        atexit(API.vedaExit)
+        #atexit(API.vedaExit)
     end
 end # module
