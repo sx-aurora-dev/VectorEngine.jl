@@ -137,7 +137,7 @@ function vecall(func::VEFunction, tt, args...; stream = C_NULL)
     convert_args(veargs, tt, args...)
 
     # TOOD: Can we add a callback that will do args cleanup?
-    err = API.vedaLaunchKernelEx(func.handle, stream, veargs.handle, #=destroyArgs=# true, 0)
+    err = API.vedaLaunchKernelEx(func.handle, stream, veargs.handle, #=destroyArgs=# true, C_NULL)
     if err != API.VEDA_SUCCESS
         throw(VEOCommandError("kernel launch failed"))
     end
