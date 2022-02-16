@@ -15,23 +15,25 @@ end
 
     # replace non-isbits arguments (they should be unused, or compilation would have failed)
     # alternatively, allow `launch` with non-isbits arguments.
-    for (i,dt) in enumerate(call_t)
-        if !isbitstype(dt)
-            # Enable passing non-isbitstype on stack
-            # TODO: find better way to identify types that actually can be passed
-            call_t[i] = Ptr{Any}
-            call_args[i] = :C_NULL
-        end
-    end
+    #for (i,dt) in enumerate(call_t)
+    #    if !isbitstype(dt)
+    #        print("!isbitstype detected:")
+    #        @show i dt
+    #        # Enable passing non-isbitstype on stack
+    #        # TODO: find better way to identify types that actually can be passed
+    #        call_t[i] = Ptr{Any}
+    #        call_args[i] = :C_NULL
+    #    end
+    #end
 
     # finalize types
     call_tt = Base.to_tuple_type(call_t)
-    @show call_tt
 
     quote
         Base.@_inline_meta
 
-        vecall(kernel, $call_tt, $(call_args...); call_kwargs...)
+        err, veargs = vecall(kernel, $call_tt, $(call_args...); call_kwargs...)
+        return veargs
     end
 end
 
@@ -41,14 +43,14 @@ isghosttype(dt) = !ismutable(dt) && sizeof(dt) == 0
     vefunction(f, tt=Tuple{}; kwargs...)
 
 Low-level interface to compile a function invocation for the currently-active GPU, returning
-a callable kernel object. For a higher-level interface, use [`@roc`](@ref).
+a callable kernel object.
 
 The following keyword arguments are supported:
 - `name`: overrides the name that the kernel will have in the generated code
 - `device`: chooses which device to compile the kernel for
 - `global_hooks`: specifies maps from global variable name to initializer hook
 
-The output of this function is automatically cached, i.e. you can simply call `rocfunction`
+The output of this function is automatically cached, i.e. you can simply call `vefunction`
 in a hot path without degrading performance. New code will be generated automatically, when
 function definitions change, or when different types or keyword arguments are provided.
 """
@@ -69,7 +71,9 @@ function vefunction_compile(@nospecialize(job::CompilerJob))
     method_instance, mi_meta = GPUCompiler.emit_julia(job)
     ir, ir_meta = GPUCompiler.emit_llvm(job, method_instance)
     kernel = ir_meta.entry
-    #@show ir
+    if haskey(ENV, "JULIA_VE_IR") && ENV["JULIA_VE_IR"] == "1"
+        @show ir
+    end
 
     obj, obj_meta = GPUCompiler.emit_asm(job, ir; format=LLVM.API.LLVMObjectFile)
 
@@ -119,7 +123,7 @@ end
 (kernel::DeviceKernel)(args...; kwargs...) = call(kernel, args...; kwargs...)
 
 @inline function vecall(kernel::DeviceKernel, tt, args...; kwargs...)
-    VEDA.vecall(kernel.fun, tt, args...; kwargs...,)
+    err, veargs = VEDA.vecall(kernel.fun, tt, args...; kwargs...,)
 end
 
 @inline function vesync(; kwargs...)

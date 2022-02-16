@@ -8,18 +8,20 @@ mutable struct xm
 end
 
 # VE side function that modifies the struct
-function pass_struct!(r::xm)
+function pass_struct!(p::Ptr{xm})
+    r::xm = unsafe_load(p)
     @veprintf("r.x=%d, r.m=%ld\n", r.x, r.m)
     r.m = r.m + 1
     @veprintf("r.m=%ld\n", r.m)
+    unsafe_store!(p, r)
     return
 end
 
-vepsm = VectorEngine.vefunction(pass_struct!, Tuple{xm})
+vepsm = VectorEngine.vefunction(pass_struct!, Tuple{Ptr{xm}})
 
 a = xm(1, 100)
 
-vepsm(a)
+vepsm(Ref(a))
 VectorEngine.vesync()
 @show a
 

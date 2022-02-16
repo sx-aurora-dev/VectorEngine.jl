@@ -85,30 +85,34 @@ end
 
 # Pass structs on stack. If mutable, modified elements can be passed back, too.
 function Base.setindex!(args::VEArgs, val::T, idx::Integer) where {T}
-    print("setindex idx=$idx T=$T val=$val\n")
+    @debug "setindex idx=$idx T=$T val=$val"
     #if isprimitivetype(T) # reinterpret to Unsigned to get calling convention right
+    #    print("reinterpret to Unsigned: "); @show idx T val
     #    Tunsigned = equivalent_uint(T)
     #    if Tunsigned !== nothing
     #        args[idx] = reinterpret(Tunsigned, val)
     #        return val
     #    end
     #end
-    if (isstructtype(T) || isprimitivetype(T)) && Base.datatype_pointerfree(T) # Pointers within structs can not be de-referenced
-        print("seems to be a struct...?\n")
+    if isstructtype(T) && Base.datatype_pointerfree(T) # Pointers within structs can not be de-referenced
+        @debug "seems to be a struct"
         intent = ismutable(val) ? API.VEDA_ARGS_INTENT_INOUT : API.VEDA_ARGS_INTENT_IN
         ref = Ref(val)
         push!(args.objs, ref) # root the reference
-        API.vedaArgsSetStack(args.handle, idx - 1, ref, intent, sizeof(T))
+        ptr = Base.unsafe_convert(Ptr{Cvoid}, ref)
+        API.vedaArgsSetStack(args.handle, idx, ptr, intent, sizeof(T))
+        val
+    elseif T <: Base.RefValue && isassigned(val)
+        @debug "seems to be a refvalue"
+        intent = ismutable(val[]) ? API.VEDA_ARGS_INTENT_INOUT : API.VEDA_ARGS_INTENT_IN
+        push!(args.objs, val) # root the reference
+        ptr = Base.unsafe_convert(Ptr{Cvoid}, val)
+        API.vedaArgsSetStack(args.handle, idx, ptr, intent, sizeof(val[]))
         val
     else
         error("VEArgs could not handle $T")
     end
 end
-
-# @inline function set_arg!(veargs::VEArgs, ::Type{T}, val, idx::Integer) where T
-#     push!(veargs.objs, val) # Root the value
-#     veargs[idx] = Base.unsafe_convert(T,  Base.cconvert(T, val))
-# end
 
 # convert the argument values to match the kernel's signature (specified by the user)
 # (this mimics `lower-ccall` in julia-syntax.scm)
@@ -121,7 +125,6 @@ end
 
     # first arg is the kernel function, skip that
     for i in 2:length(args)
-        #push!(ex.args, :(set_arg!(veargs, $(types[i]), args[$i], $i)))
         push!(ex.args, :(veargs[$(i-2)] = args[$i]))
     end
 
@@ -130,7 +133,7 @@ end
 
 function vecall(func::VEFunction, tt, args...; stream = C_NULL)
     veargs = VEArgs()
-    @show args
+    #@show args
     convert_args(veargs, tt, args...)
 
     # TOOD: Can we add a callback that will do args cleanup?
