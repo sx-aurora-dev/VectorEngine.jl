@@ -218,12 +218,16 @@ function vedaLaunchHostFunc(stream, fn, userData)
     ccall((:vedaLaunchHostFunc, libveda), VEDAresult, (VEDAstream, VEDAhost_function, Ptr{Cvoid}), stream, fn, userData)
 end
 
+function vedaLaunchHostFuncEx(stream, fn, userData, result)
+    ccall((:vedaLaunchHostFuncEx, libveda), VEDAresult, (VEDAstream, VEDAhost_function, Ptr{Cvoid}, Ptr{UInt64}), stream, fn, userData, result)
+end
+
 function vedaLaunchKernel(f, stream, arg1)
     ccall((:vedaLaunchKernel, libveda), VEDAresult, (VEDAfunction, VEDAstream, VEDAargs), f, stream, arg1)
 end
 
-function vedaLaunchKernelEx(f, stream, arg1, destroyArgs, checkResult)
-    ccall((:vedaLaunchKernelEx, libveda), VEDAresult, (VEDAfunction, VEDAstream, VEDAargs, Cint, Cint), f, stream, arg1, destroyArgs, checkResult)
+function vedaLaunchKernelEx(f, stream, arg1, destroyArgs, result)
+    ccall((:vedaLaunchKernelEx, libveda), VEDAresult, (VEDAfunction, VEDAstream, VEDAargs, Cint, Ptr{UInt64}), f, stream, arg1, destroyArgs, result)
 end
 
 function vedaMemAlloc(ptr, size)
@@ -450,6 +454,82 @@ end
 # Julia wrapper for header: veda_device.h
 # Automatically generated using Clang.jl
 
+
+function vedaGetErrorName(error, pStr)
+    ccall((:vedaGetErrorName, libveda), VEDAresult, (VEDAresult, Ptr{Cstring}), error, pStr)
+end
+
+function vedaGetErrorString(error, pStr)
+    ccall((:vedaGetErrorString, libveda), VEDAresult, (VEDAresult, Ptr{Cstring}), error, pStr)
+end
+
+function vedaMemAlloc(vptr, size)
+    ccall((:vedaMemAlloc, libveda), VEDAresult, (VEDAdeviceptr, Csize_t), vptr, size)
+end
+
+function vedaMemAllocPtr(ptr, vptr, size)
+    ccall((:vedaMemAllocPtr, libveda), VEDAresult, (Ptr{Ptr{Cvoid}}, VEDAdeviceptr, Csize_t), ptr, vptr, size)
+end
+
+function vedaMemPtr(ptr, vptr)
+    ccall((:vedaMemPtr, libveda), VEDAresult, (Ptr{Ptr{Cvoid}}, VEDAdeviceptr), ptr, vptr)
+end
+
+function vedaMemPtrSize(ptr, size, vptr)
+    ccall((:vedaMemPtrSize, libveda), VEDAresult, (Ptr{Ptr{Cvoid}}, Ptr{Csize_t}, VEDAdeviceptr), ptr, size, vptr)
+end
+
+function vedaMemSize(size, vptr)
+    ccall((:vedaMemSize, libveda), VEDAresult, (Ptr{Csize_t}, VEDAdeviceptr), size, vptr)
+end
+
+function vedaMemSwap(A, B)
+    ccall((:vedaMemSwap, libveda), VEDAresult, (VEDAdeviceptr, VEDAdeviceptr), A, B)
+end
+
+function vedaMemcpy(dst, src, bytes)
+    ccall((:vedaMemcpy, libveda), VEDAresult, (Ptr{Cvoid}, Ptr{Cvoid}, Csize_t), dst, src, bytes)
+end
+
+function vedaMemsetD128(ptr, x, y, cnt)
+    ccall((:vedaMemsetD128, libveda), VEDAresult, (Ptr{Cvoid}, UInt64, UInt64, Csize_t), ptr, x, y, cnt)
+end
+
+function vedaMemsetD16(ptr, value, cnt)
+    ccall((:vedaMemsetD16, libveda), VEDAresult, (Ptr{Cvoid}, UInt16, Csize_t), ptr, value, cnt)
+end
+
+function vedaMemsetD2D128(ptr, pitch, x, y, w, h)
+    ccall((:vedaMemsetD2D128, libveda), VEDAresult, (Ptr{Cvoid}, Csize_t, UInt64, UInt64, Csize_t, Csize_t), ptr, pitch, x, y, w, h)
+end
+
+function vedaMemsetD2D16(ptr, pitch, value, w, h)
+    ccall((:vedaMemsetD2D16, libveda), VEDAresult, (Ptr{Cvoid}, Csize_t, UInt16, Csize_t, Csize_t), ptr, pitch, value, w, h)
+end
+
+function vedaMemsetD2D32(ptr, pitch, value, w, h)
+    ccall((:vedaMemsetD2D32, libveda), VEDAresult, (Ptr{Cvoid}, Csize_t, UInt32, Csize_t, Csize_t), ptr, pitch, value, w, h)
+end
+
+function vedaMemsetD2D64(ptr, pitch, value, w, h)
+    ccall((:vedaMemsetD2D64, libveda), VEDAresult, (Ptr{Cvoid}, Csize_t, UInt64, Csize_t, Csize_t), ptr, pitch, value, w, h)
+end
+
+function vedaMemsetD2D8(ptr, pitch, value, w, h)
+    ccall((:vedaMemsetD2D8, libveda), VEDAresult, (Ptr{Cvoid}, Csize_t, UInt8, Csize_t, Csize_t), ptr, pitch, value, w, h)
+end
+
+function vedaMemsetD32(ptr, value, cnt)
+    ccall((:vedaMemsetD32, libveda), VEDAresult, (Ptr{Cvoid}, UInt32, Csize_t), ptr, value, cnt)
+end
+
+function vedaMemsetD64(ptr, value, cnt)
+    ccall((:vedaMemsetD64, libveda), VEDAresult, (Ptr{Cvoid}, UInt64, Csize_t), ptr, value, cnt)
+end
+
+function vedaMemsetD8(ptr, value, cnt)
+    ccall((:vedaMemsetD8, libveda), VEDAresult, (Ptr{Cvoid}, UInt8, Csize_t), ptr, value, cnt)
+end
 # Julia wrapper for header: veda_device_omp.h
 # Automatically generated using Clang.jl
 
