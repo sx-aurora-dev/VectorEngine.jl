@@ -1,4 +1,8 @@
 module VectorEngine
+
+    using GPUArrays
+    using Adapt
+
     using GPUCompiler
     using LLVM
     using LLVM.Interop
@@ -17,6 +21,7 @@ module VectorEngine
     # because of generated functions.
     include(joinpath("device", "tools.jl"))
     include(joinpath("device", "memory.jl"))
+    include(joinpath("device", "array.jl"))
     include(joinpath("device", "output.jl"))
     include(joinpath("device", "runtime.jl"))
     include(joinpath("device", "llvm.jl"))
@@ -28,4 +33,7 @@ module VectorEngine
     include("reflection.jl")
 
     # High-level functionality
+    include("pool.jl")
+    include("array.jl")
+
 end # module

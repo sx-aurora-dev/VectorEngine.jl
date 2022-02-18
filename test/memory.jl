@@ -47,9 +47,9 @@ let
     src = Mem.alloc(Mem.Device, nb)
 
     @test_throws ArgumentError unsafe_copyto!(typed_pointer(src, T), pointer(data), N; async=true)
-    unsafe_copyto!(typed_pointer(src, T), pointer(data), N; async=true, stream=VeDefaultStream())
+    unsafe_copyto!(typed_pointer(src, T), pointer(data), N; async=true, stream=VEDefaultStream())
 
-    Mem.set!(typed_pointer(src, T), zero(T), N; async=true, stream=VeDefaultStream())
+    Mem.set!(typed_pointer(src, T), zero(T), N; async=true, stream=VEDefaultStream())
 
     Mem.free(src)
 end

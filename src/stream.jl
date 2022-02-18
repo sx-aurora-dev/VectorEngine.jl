@@ -1,29 +1,29 @@
 # Stream management
 
-export VeStream, VeDefaultStream
+export VEStream, VEDefaultStream
 
 import .VEDA.API: VEDAstream
 
-mutable struct VeStream
+mutable struct VEStream
     handle::VEDAstream
 end
 
-Base.unsafe_convert(::Type{VEDAstream}, s::VeStream) = s.handle
-Base.convert(::Type{VEDAstream}, s::VeStream) = s.handle
+Base.unsafe_convert(::Type{VEDAstream}, s::VEStream) = s.handle
+Base.convert(::Type{VEDAstream}, s::VEStream) = s.handle
 
-Base.:(==)(a::VeStream, b::VeStream) = a.handle == b.handle
-Base.hash(s::VeStream, h::UInt) = hash(s.handle, h)
+Base.:(==)(a::VEStream, b::VEStream) = a.handle == b.handle
+Base.hash(s::VEStream, h::UInt) = hash(s.handle, h)
 
 """
-    VeDefaultStream()
+    VEDefaultStream()
 
 Return the default stream.
 """
-@inline VeDefaultStream() = VeStream(convert(VEDAstream, C_NULL))
+@inline VEDefaultStream() = VEStream(convert(VEDAstream, C_NULL))
 
 """
-    synchronize(s::VeStream)
+    synchronize(s::VEStream)
 
 Wait until a stream's tasks are completed.
 """
-synchronize(s::VeStream) = vedaStreamSynchronize(s)
+synchronize(s::VEStream) = vedaStreamSynchronize(s)

@@ -37,6 +37,33 @@ end
     end
 end
 
+## argument conversion
+
+struct KernelAdaptor end
+
+# convert host pointers to device pointers
+Adapt.adapt_storage(to::KernelAdaptor, p::VEPtr{T}) where {T} = reinterpret(Ptr{T}, p)
+
+# Base.RefValue isn't VE compatible, so provide a compatible alternative
+struct VERefValue{T} <: Ref{T}
+  x::T
+end
+Base.getindex(r::VERefValue) = r.x
+Adapt.adapt_structure(to::KernelAdaptor, r::Base.RefValue) = ZeRefValue(adapt(to, r[]))
+
+"""
+    kernel_convert(x)
+
+This function is called for every argument to be passed to a kernel, allowing it to be
+converted to a GPU-friendly format. By default, the function does nothing and returns the
+input object `x` as-is.
+
+Do not add methods to this function, but instead extend the underlying Adapt.jl package and
+register methods for the the `oneAPI.KernelAdaptor` type.
+"""
+kernel_convert(arg) = adapt(KernelAdaptor(), arg)
+
+
 isghosttype(dt) = !ismutable(dt) && sizeof(dt) == 0
 
 """

@@ -1,6 +1,6 @@
 # Raw memory management
 
-export Mem
+export Mem, available_memory, total_memory
 
 module Mem
 
@@ -17,18 +17,18 @@ using Printf
 
 # a chunk of memory allocated using the VEDA APIs. this memory can reside on the host, on
 # the VE, or can represent specially-formatted memory (like texture arrays). depending on
-# all that, the buffer may be `convert`ed to a Ptr, VePtr, or VeArrayPtr.
+# all that, the buffer may be `convert`ed to a Ptr, VEPtr, or VEArrayPtr.
 
 abstract type AbstractBuffer end
 
-Base.convert(T::Type{<:Union{Ptr,VePtr,VeArrayPtr}}, buf::AbstractBuffer) =
+Base.convert(T::Type{<:Union{Ptr,VEPtr,VEArrayPtr}}, buf::AbstractBuffer) =
     throw(ArgumentError("Illegal conversion of a $(typeof(buf)) to a $T"))
 
 # ccall integration
 #
 # taking the pointer of a buffer means returning the underlying pointer,
 # and not the pointer of the buffer object itself.
-Base.unsafe_convert(T::Type{<:Union{Ptr,VePtr,VeArrayPtr}}, buf::AbstractBuffer) = convert(T, buf)
+Base.unsafe_convert(T::Type{<:Union{Ptr,VEPtr,VEArrayPtr}}, buf::AbstractBuffer) = convert(T, buf)
 
 
 ## device buffer
@@ -40,7 +40,7 @@ Base.unsafe_convert(T::Type{<:Union{Ptr,VePtr,VeArrayPtr}}, buf::AbstractBuffer)
 A buffer of device memory residing on the VE.
 """
 struct DeviceBuffer <: AbstractBuffer
-    ptr::VePtr{Cvoid}
+    ptr::VEPtr{Cvoid}
     bytesize::Int
 end
 
@@ -50,24 +50,23 @@ Base.sizeof(buf::DeviceBuffer) = buf.bytesize
 Base.show(io::IO, buf::DeviceBuffer) =
     @printf(io, "DeviceBuffer(%s at %p)", Base.format_bytes(sizeof(buf)), Int(pointer(buf)))
 
-Base.convert(::Type{VePtr{T}}, buf::DeviceBuffer) where {T} =
-    convert(VePtr{T}, pointer(buf))
+Base.convert(::Type{VEPtr{T}}, buf::DeviceBuffer) where {T} = buf.ptr
 
 
 """
-    Mem.alloc(DeviceBuffer, bytesize::Integer)
+    Mem.device_alloc(DeviceBuffer, bytesize::Integer)
 
 Allocate `bytesize` bytes of memory on the device. This memory is only accessible on the
 VE, and requires explicit calls to `unsafe_copyto!`, which wraps `vedaMemcpy`,
 for access on the CPU.
 """
-function alloc(::Type{DeviceBuffer}, bytesize::Integer)
+function device_alloc(bytesize::Integer)
     bytesize == 0 && return DeviceBuffer(VE_NULL, 0)
 
     ptr_ref = Ref{API.VEDAdeviceptr}()
     API.vedaMemAlloc(ptr_ref, bytesize)
 
-    return DeviceBuffer(reinterpret(VePtr{Cvoid}, ptr_ref[]), bytesize)
+    return DeviceBuffer(reinterpret(VEPtr{Cvoid}, ptr_ref[]), bytesize)
 end
 
 
@@ -100,7 +99,7 @@ Base.show(io::IO, buf::HostBuffer) =
 Base.convert(::Type{Ptr{T}}, buf::HostBuffer) where {T} =
     convert(Ptr{T}, pointer(buf))
 
-function Base.convert(::Type{VePtr{T}}, buf::HostBuffer) where {T}
+function Base.convert(::Type{VEPtr{T}}, buf::HostBuffer) where {T}
     throw(ArgumentError("cannot take the VE address of a CPU buffer"))
 end
 
@@ -130,7 +129,7 @@ end
 ## array buffer
 
 mutable struct ArrayBuffer{T,N} <: AbstractBuffer
-    ptr::VeArrayPtr{T}
+    ptr::VEArrayPtr{T}
     dims::Dims{N}
 end
 
@@ -146,11 +145,11 @@ Base.show(io::IO, buf::ArrayBuffer{T}) where {T} =
     @printf(io, "%s ArrayBuffer{%s,%g}(%p)", Base.inds2string(size(buf)), string(T), ndims(buf), Int(pointer(buf)))
 
 # array buffers are typed, so refuse arbitrary conversions
-Base.convert(::Type{VeArrayPtr{T}}, buf::ArrayBuffer{T}) where {T} =
-    convert(VeArrayPtr{T}, pointer(buf))
-# ... except for VeArrayPtr{Nothing}, which is used to call untyped API functions
-Base.convert(::Type{VeArrayPtr{Nothing}}, buf::ArrayBuffer)  =
-    convert(VeArrayPtr{Nothing}, pointer(buf))
+Base.convert(::Type{VEArrayPtr{T}}, buf::ArrayBuffer{T}) where {T} =
+    convert(VEArrayPtr{T}, pointer(buf))
+# ... except for VEArrayPtr{Nothing}, which is used to call untyped API functions
+Base.convert(::Type{VEArrayPtr{Nothing}}, buf::ArrayBuffer)  =
+    convert(VEArrayPtr{Nothing}, pointer(buf))
 
 function alloc(::Type{<:ArrayBuffer{T}}, dims::Dims{N}) where {T,N}
     format = convert(CUarray_format, eltype(T))
@@ -189,7 +188,7 @@ function alloc(::Type{<:ArrayBuffer{T}}, dims::Dims{N}) where {T,N}
 
     handle_ref = Ref{CUarray}()
     API.vedaArray3DCreate(handle_ref, allocateArray_ref)
-    ptr = reinterpret(VeArrayPtr{T}, handle_ref[])
+    ptr = reinterpret(VEArrayPtr{T}, handle_ref[])
 
     return ArrayBuffer{T,N}(ptr, dims)
 end
@@ -214,8 +213,8 @@ const Array   = ArrayBuffer
 ## initialization
 
 """
-    Mem.set!(buf::VePtr, value::Union{UInt8,UInt16,UInt32}, len::Integer;
-             async::Bool=false, stream::VeStream)
+    Mem.set!(buf::VEPtr, value::Union{UInt8,UInt16,UInt32}, len::Integer;
+             async::Bool=false, stream::VEStream)
 
 Initialize device memory by copying `val` for `len` times. Executed asynchronously if
 `async` is true, in which case a valid `stream` is required.
@@ -226,8 +225,8 @@ for T in [UInt8, UInt16, UInt32]
     bits = 8*sizeof(T)
     fn_sync = Symbol("vedaMemsetD$(bits)")
     fn_async = Symbol("vedaMemsetD$(bits)Async")
-    @eval function set!(ptr::VePtr{$T}, value::$T, len::Integer;
-                        async::Bool=false, stream::Union{Nothing,VeStream}=nothing)
+    @eval function set!(ptr::VEPtr{$T}, value::$T, len::Integer;
+                        async::Bool=false, stream::Union{Nothing,VEStream}=nothing)
         if async
           stream===nothing &&
               throw(ArgumentError("Asynchronous memory operations require a stream."))
@@ -243,12 +242,12 @@ end
 
 ## copy operations
 
-for (f, fa, srcPtrTy, dstPtrTy) in (("vedaMemcpyDtoH", "vedaMemcpyDtoHAsync", VePtr, Ptr),
-                                    ("vedaMemcpyHtoD", "vedaMemcpyHtoDAsync", Ptr,   VePtr),
-                                    ("vedaMemcpyDtoD", "vedaMemcpyDtoDAsync", VePtr, VePtr),
+for (f, fa, srcPtrTy, dstPtrTy) in (("vedaMemcpyDtoH", "vedaMemcpyDtoHAsync", VEPtr, Ptr),
+                                    ("vedaMemcpyHtoD", "vedaMemcpyHtoDAsync", Ptr,   VEPtr),
+                                    ("vedaMemcpyDtoD", "vedaMemcpyDtoDAsync", VEPtr, VEPtr),
                                    )
     @eval function Base.unsafe_copyto!(dst::$dstPtrTy{T}, src::$srcPtrTy{T}, N::Integer;
-                                       stream::Union{Nothing,VeStream}=nothing,
+                                       stream::Union{Nothing,VEStream}=nothing,
                                        async::Bool=false) where T
         if async
             stream===nothing &&
@@ -263,8 +262,8 @@ for (f, fa, srcPtrTy, dstPtrTy) in (("vedaMemcpyDtoH", "vedaMemcpyDtoHAsync", Ve
     end
 end
 
-function Base.unsafe_copyto!(dst::VeArrayPtr{T}, src::Ptr{T}, N::Integer;
-                             stream::Union{Nothing,VeStream}=nothing,
+function Base.unsafe_copyto!(dst::VEArrayPtr{T}, src::Ptr{T}, N::Integer;
+                             stream::Union{Nothing,VEStream}=nothing,
                              async::Bool=false) where T
     if async
         stream===nothing &&
@@ -277,8 +276,8 @@ function Base.unsafe_copyto!(dst::VeArrayPtr{T}, src::Ptr{T}, N::Integer;
     end
 end
 
-function Base.unsafe_copyto!(dst::Ptr{T}, src::VeArrayPtr{T}, soffs::Integer, N::Integer;
-                             stream::Union{Nothing,VeStream}=nothing,
+function Base.unsafe_copyto!(dst::Ptr{T}, src::VEArrayPtr{T}, soffs::Integer, N::Integer;
+                             stream::Union{Nothing,VEStream}=nothing,
                              async::Bool=false) where T
     if async
         stream===nothing &&
@@ -291,16 +290,16 @@ function Base.unsafe_copyto!(dst::Ptr{T}, src::VeArrayPtr{T}, soffs::Integer, N:
     end
 end
 
-Base.unsafe_copyto!(dst::VeArrayPtr{T}, doffs::Integer, src::VePtr{T}, N::Integer) where {T} =
+Base.unsafe_copyto!(dst::VEArrayPtr{T}, doffs::Integer, src::VEPtr{T}, N::Integer) where {T} =
     API.vedaMemcpyDtoA(dst, doffs, src, N*sizeof(T))
 
-Base.unsafe_copyto!(dst::VePtr{T}, src::VeArrayPtr{T}, soffs::Integer, N::Integer) where {T} =
+Base.unsafe_copyto!(dst::VEPtr{T}, src::VEArrayPtr{T}, soffs::Integer, N::Integer) where {T} =
     API.vedaMemcpyAtoD(dst, src, soffs, N*sizeof(T))
 
-Base.unsafe_copyto!(dst::VeArrayPtr, src, N::Integer; kwargs...) =
+Base.unsafe_copyto!(dst::VEArrayPtr, src, N::Integer; kwargs...) =
     Base.unsafe_copyto!(dst, 0, src, N; kwargs...)
 
-Base.unsafe_copyto!(dst, src::VeArrayPtr, N::Integer; kwargs...) =
+Base.unsafe_copyto!(dst, src::VEArrayPtr, N::Integer; kwargs...) =
     Base.unsafe_copyto!(dst, src, 0, N; kwargs...)
 
 ## memory info
@@ -327,3 +326,15 @@ available_memory() = Mem.info()[1]
 Returns the total amount of memory (in bytes), available for allocation by the CUDA context.
 """
 total_memory() = Mem.info()[2]
+
+
+# memory operations
+
+function unsafe_fill!(ptr::Union{Ptr{T},VEPtr{T}},
+                      pattern::Union{Ptr{T},VEPtr{T}}, N::Integer) where T
+    bytes = N*sizeof(T)
+    bytes==0 && return
+    Mem.set!(ptr, pattern, N)
+end
+
+
