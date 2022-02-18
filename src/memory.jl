@@ -205,7 +205,6 @@ const Host    = HostBuffer
 const Array   = ArrayBuffer
 
 
-
 #
 # pointers
 #
@@ -213,7 +212,8 @@ const Array   = ArrayBuffer
 ## initialization
 
 """
-    Mem.set!(buf::VEPtr, value::Union{UInt8,UInt16,UInt32}, len::Integer;
+    Mem.set!(buf::VEPtr, value::Union{Int8,UInt8,Int16,UInt16,Int32,UInt32,
+                                      Int64,UInt64,Float32,Float64}, len::Integer;
              async::Bool=false, stream::VEStream)
 
 Initialize device memory by copying `val` for `len` times. Executed asynchronously if
@@ -221,20 +221,22 @@ Initialize device memory by copying `val` for `len` times. Executed asynchronous
 """
 set!
 
-for T in [UInt8, UInt16, UInt32]
+for T in [Int8, UInt8, Int16, UInt16, Int32, UInt32, Int64, UInt64, Float32, Float64]
     bits = 8*sizeof(T)
     fn_sync = Symbol("vedaMemsetD$(bits)")
     fn_async = Symbol("vedaMemsetD$(bits)Async")
+    U = Symbol("UInt$(bits)")
     @eval function set!(ptr::VEPtr{$T}, value::$T, len::Integer;
                         async::Bool=false, stream::Union{Nothing,VEStream}=nothing)
+        val = typeof(value) == $U ? value : reinterpret($U, value)
         if async
           stream===nothing &&
               throw(ArgumentError("Asynchronous memory operations require a stream."))
-            $(getproperty(VectorEngine.VEDA.API, fn_async))(ptr, value, len, stream)
+            $(getproperty(VectorEngine.VEDA.API, fn_async))(ptr, val, len, stream)
         else
           stream===nothing ||
               throw(ArgumentError("Synchronous memory operations cannot be issued on a stream."))
-            $(getproperty(VectorEngine.VEDA.API, fn_sync))(ptr, value, len)
+            $(getproperty(VectorEngine.VEDA.API, fn_sync))(ptr, val, len)
         end
     end
 end
