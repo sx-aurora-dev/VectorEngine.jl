@@ -35,5 +35,5 @@ module VectorEngine
     # High-level functionality
     include("pool.jl")
     include("array.jl")
-
+    include("random.jl")
 end # module
