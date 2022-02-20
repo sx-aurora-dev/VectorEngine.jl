@@ -4,7 +4,8 @@ function allocate(bytes::Int)
     # 0-byte allocations shouldn't hit the pool
     bytes == 0 && return VE_NULL
 
-    buf = Mem.device_alloc(bytes)
+    #buf = Mem.device_alloc(bytes)
+    buf = Mem.VEBuffer(bytes)
 
     @assert !haskey(allocated, pointer(buf))
     allocated[pointer(buf)] = buf, 1
@@ -33,8 +34,6 @@ function release(buf::Mem.VEBuffer)
         allocated[pointer(buf)] = buf, refcount-1
         return
     end
-
-    Mem.free(buf)
-
+    finalize(buf)
     return
 end

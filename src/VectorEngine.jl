@@ -34,9 +34,9 @@ include("execution.jl")
 include("reflection.jl")
 
 # array essentials
-include("pool.jl")
 include("array.jl")
 
 # High-level functionality
 include("random.jl")
+include("utils.jl")
 end # module

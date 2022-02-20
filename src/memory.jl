@@ -39,46 +39,71 @@ Base.unsafe_convert(T::Type{<:Union{Ptr,VEPtr,VEArrayPtr}}, buf::AbstractBuffer)
 Host residing structure representing a buffer of device memory.
 """
 mutable struct VEBuffer <: AbstractBuffer
-    ptr::API.VEDAdeviceptr
+    vptr::API.VEDAdeviceptr
+    ptr::VEPtr{Int8}
     bytesize::Int
+    function VEBuffer(bsize::Int)
+        vp = Ref{API.VEDAdeviceptr}()
+        p = Ref{VEPtr{Int8}}(0)
+        API.vedaMemAlloc(vp, bsize)
+        API.vedaMemPtr(pointer_from_objref(p), vp[])
+        #VectorEngine.vesync()      # is this needed?
+        obj = new(vp[], p[], bsize)
+        finalizer(unsafe_free!, obj)
+        return obj
+    end
 end
 
-Base.pointer(buf::VEBuffer) = buf.ptr
+function unsafe_free!(buf::VEBuffer)
+    if pointer(buf) != C_NULL
+        API.vedaMemFree(pointer(buf))
+        buf.vptr = C_NULL
+        buf.ptr = VE_NULL
+    end
+end
+
+Base.pointer(buf::VEBuffer) = buf.vptr
 Base.sizeof(buf::VEBuffer) = buf.bytesize
 
 Base.show(io::IO, buf::VEBuffer) =
-    @printf(io, "VEBuffer(%s at %p)", Base.format_bytes(sizeof(buf)), Int(pointer(buf)))
+    @printf(io, "VEBuffer(%s at %p (%p))", Base.format_bytes(sizeof(buf)), Int(buf.vptr), Int(buf.ptr))
 
-Base.convert(::Type{API.VEDAdeviceptr}, buf::VEBuffer) where {T} = buf.ptr
-
-
-"""
-    Mem.device_alloc(VEBuffer, bytesize::Integer)
-
-Allocate `bytesize` bytes of memory on the device. This memory is only accessible on the
-VE, and requires explicit calls to `unsafe_copyto!`, which wraps `vedaMemcpy`,
-for access on the CPU.
-"""
-function device_alloc(bytesize::Integer)
-    bytesize == 0 && return VEBuffer(VE_NULL, 0)
-
-    ptr_ref = Ref{API.VEDAdeviceptr}()
-    API.vedaMemAlloc(ptr_ref, bytesize)
-
-    return VEBuffer(ptr_ref[], bytesize)
-end
-
-
-function free(buf::VEBuffer)
-    if pointer(buf) != VE_NULL
-        API.vedaMemFree(buf.ptr)
-    end
-end
+Base.convert(::Type{API.VEDAdeviceptr}, buf::VEBuffer) where {T} = buf.vptr
 
 
 ############################################################
 
+## device side device buffer structure
 
+"""
+    Mem.VEDeviceBuffer
+
+Host residing structure representing a buffer of device memory.
+"""
+mutable struct VEDeviceBuffer
+    ptr::VEPtr{Int8}
+    bytesize::Int
+    VEDeviceBuffer(p::VEPtr{Int8}, bsize::Int) = new(p, bsize)
+end
+
+function VEDeviceBuffer(vb::VEBuffer)
+    vdb = VEDeviceBuffer(vb.ptr, vb.bytesize)
+    #API.vedaMemPtr(pointer(vdb), vb.ptr)
+    #@veprintf("real pointer 0x%p\n", UInt64(vdb.ptr))
+    vdb
+end
+
+Base.pointer(buf::VEDeviceBuffer) = buf.ptr
+Base.sizeof(buf::VEDeviceBuffer) = buf.bytesize
+
+#Base.show(io::IO, buf::VEBuffer) =
+#    @veprintf(io, "VEDeviceBuffer(%s at %p)", Base.format_bytes(sizeof(buf)), Int(buf.ptr))
+
+Base.convert(::Type{VEPtr{T}}, buf::VEDeviceBuffer) where {T} = buf.ptr
+
+Base.unsafe_convert(::Type{VEDeviceBuffer}, vb::VEBuffer) = VEDeviceBuffer(vb)
+
+############################################################
 
 ## host buffer
 

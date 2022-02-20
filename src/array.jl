@@ -22,7 +22,7 @@ mutable struct VEArray{T,N} <: AbstractGPUArray{T,N}
     Base.isbitstype(T)  || error("VEArray only supports bits types") # allocatedinline on 1.3+
     #ctx = context()
     #dev = device()
-    buf = allocate(prod(dims) * sizeof(T))          # not needed # , Base.datatype_alignment(T))
+    buf = Mem.VEBuffer(prod(dims) * sizeof(T))          # not needed # , Base.datatype_alignment(T))
     obj = new{T,N}(buf, dims, ARRAY_MANAGED) # add these later # , ctx, dev)
     finalizer(unsafe_free!, obj)
     return obj
@@ -37,7 +37,7 @@ function unsafe_free!(xs::VEArray)
     throw(ArgumentError("Cannot free an unmanaged buffer."))
   end
 
-  release(xs.buf)
+  finalize(xs.buf)
   xs.state = ARRAY_FREED
 
   # the object is dead, so we can also wipe the pointer
@@ -181,23 +181,15 @@ Base.unsafe_convert(::Type{VEPtr{T}}, x::VEArray{T}) where {T} = reinterpret(VEP
 ## interop with GPU arrays
 
 function Base.unsafe_convert(::Type{VEDeviceArray{T,N,AS.Global}}, a::VEDenseArray{T,N}) where {T,N}
-    ptr = Ref{Ptr{Int8}}(0)
-    VEDA.API.vedaMemPtr(pointer_from_objref(ptr), pointer(a.buf))
-    VEDeviceArray{T,N,AS.Global}(size(a), reinterpret(LLVMPtr{T,AS.Global}, ptr[]))
+    VEDeviceArray{T,N,AS.Global}(size(a), reinterpret(LLVMPtr{T,AS.Global}, a.buf.ptr))
 end
 
 Adapt.adapt_storage(::Adaptor, xs::VEArray{T,N}) where {T,N} =
   Base.unsafe_convert(VEDeviceArray{T,N,AS.Global}, xs)
 
-
 # we materialize ReshapedArray/ReinterpretArray/SubArray/... directly as a device array
 Adapt.adapt_structure(::Adaptor, xs::VEDenseArray{T,N}) where {T,N} =
   Base.unsafe_convert(VEDeviceArray{T,N,AS.Global}, xs)
-
-
-Adapt.adapt_structure(::Adaptor, vb::VEBuffer) =
-  Base.unsafe_convert(VEDeviceBuffer, vb)
-
 
 ## interop with CPU arrays
 
@@ -292,6 +284,10 @@ function Base.unsafe_copyto!(         # not needed # ctx::ZeContext, dev::ZeDevi
   end
   return dest
 end
+
+## adapter for VEBuffer: on VE side create a corresponding VEDeviceBuffer
+
+Adapt.adapt_storage(::Adaptor, b::Mem.VEBuffer) = Mem.VEDeviceBuffer(b)
 
 
 ## utilities
