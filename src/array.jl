@@ -9,7 +9,7 @@ export VEArray
 end
 
 mutable struct VEArray{T,N} <: AbstractGPUArray{T,N}
-  ptr::VEPtr{Nothing}
+  buf::Union{Nothing,Mem.VEBuffer}
   dims::Dims{N}
 
   state::ArrayState
@@ -22,8 +22,8 @@ mutable struct VEArray{T,N} <: AbstractGPUArray{T,N}
     Base.isbitstype(T)  || error("VEArray only supports bits types") # allocatedinline on 1.3+
     #ctx = context()
     #dev = device()
-    ptr = allocate(prod(dims) * sizeof(T))          # not needed # , Base.datatype_alignment(T))
-    obj = new{T,N}(ptr, dims, ARRAY_MANAGED) # add these later # , ctx, dev)
+    buf = allocate(prod(dims) * sizeof(T))          # not needed # , Base.datatype_alignment(T))
+    obj = new{T,N}(buf, dims, ARRAY_MANAGED) # add these later # , ctx, dev)
     finalizer(unsafe_free!, obj)
     return obj
   end
@@ -37,11 +37,11 @@ function unsafe_free!(xs::VEArray)
     throw(ArgumentError("Cannot free an unmanaged buffer."))
   end
 
-  release(xs.ptr)
+  release(xs.buf)
   xs.state = ARRAY_FREED
 
   # the object is dead, so we can also wipe the pointer
-  xs.ptr = VE_NULL
+  xs.buf = nothing
 
   return
 end
@@ -175,22 +175,28 @@ Base.convert(::Type{T}, x::T) where T <: VEArray = x
 
 Base.unsafe_convert(::Type{Ptr{T}}, x::VEArray{T}) where {T} =
   throw(ArgumentError("cannot take the host address of a $(typeof(x))"))
-Base.unsafe_convert(::Type{VEPtr{T}}, x::VEArray{T}) where {T} = convert(VEPtr{T}, x.ptr)
+Base.unsafe_convert(::Type{VEPtr{T}}, x::VEArray{T}) where {T} = reinterpret(VEPtr{T}, pointer(x.buf))
 
 
 ## interop with GPU arrays
 
-function Base.unsafe_convert(::Type{VEDeviceArray{T,N}}, a::VEDenseArray{T,N}) where {T,N}
-  VEDeviceArray{T,N}(size(a), reinterpret(LLVMPtr{T}, pointer(a)))
+function Base.unsafe_convert(::Type{VEDeviceArray{T,N,AS.Global}}, a::VEDenseArray{T,N}) where {T,N}
+    ptr = Ref{Ptr{Int8}}(0)
+    VEDA.API.vedaMemPtr(pointer_from_objref(ptr), pointer(a.buf))
+    VEDeviceArray{T,N,AS.Global}(size(a), reinterpret(LLVMPtr{T,AS.Global}, ptr[]))
 end
 
-Adapt.adapt_storage(::KernelAdaptor, xs::VEArray{T,N}) where {T,N} =
-  Base.unsafe_convert(VEDeviceArray{T,N}, xs)
+Adapt.adapt_storage(::Adaptor, xs::VEArray{T,N}) where {T,N} =
+  Base.unsafe_convert(VEDeviceArray{T,N,AS.Global}, xs)
 
 
 # we materialize ReshapedArray/ReinterpretArray/SubArray/... directly as a device array
-Adapt.adapt_structure(::KernelAdaptor, xs::VEDenseArray{T,N}) where {T,N} =
-  Base.unsafe_convert(VEDeviceArray{T,N}, xs)
+Adapt.adapt_structure(::Adaptor, xs::VEDenseArray{T,N}) where {T,N} =
+  Base.unsafe_convert(VEDeviceArray{T,N,AS.Global}, xs)
+
+
+Adapt.adapt_structure(::Adaptor, vb::VEBuffer) =
+  Base.unsafe_convert(VEDeviceBuffer, vb)
 
 
 ## interop with CPU arrays

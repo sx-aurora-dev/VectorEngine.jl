@@ -31,50 +31,53 @@ Base.convert(T::Type{<:Union{Ptr,VEPtr,VEArrayPtr}}, buf::AbstractBuffer) =
 Base.unsafe_convert(T::Type{<:Union{Ptr,VEPtr,VEArrayPtr}}, buf::AbstractBuffer) = convert(T, buf)
 
 
-## device buffer
+## host side device buffer
 
 """
-    Mem.DeviceBuffer
-    Mem.Device
+    Mem.VEBuffer
 
-A buffer of device memory residing on the VE.
+Host residing structure representing a buffer of device memory.
 """
-struct DeviceBuffer <: AbstractBuffer
-    ptr::VEPtr{Cvoid}
+mutable struct VEBuffer <: AbstractBuffer
+    ptr::API.VEDAdeviceptr
     bytesize::Int
 end
 
-Base.pointer(buf::DeviceBuffer) = buf.ptr
-Base.sizeof(buf::DeviceBuffer) = buf.bytesize
+Base.pointer(buf::VEBuffer) = buf.ptr
+Base.sizeof(buf::VEBuffer) = buf.bytesize
 
-Base.show(io::IO, buf::DeviceBuffer) =
-    @printf(io, "DeviceBuffer(%s at %p)", Base.format_bytes(sizeof(buf)), Int(pointer(buf)))
+Base.show(io::IO, buf::VEBuffer) =
+    @printf(io, "VEBuffer(%s at %p)", Base.format_bytes(sizeof(buf)), Int(pointer(buf)))
 
-Base.convert(::Type{VEPtr{T}}, buf::DeviceBuffer) where {T} = buf.ptr
+Base.convert(::Type{API.VEDAdeviceptr}, buf::VEBuffer) where {T} = buf.ptr
 
 
 """
-    Mem.device_alloc(DeviceBuffer, bytesize::Integer)
+    Mem.device_alloc(VEBuffer, bytesize::Integer)
 
 Allocate `bytesize` bytes of memory on the device. This memory is only accessible on the
 VE, and requires explicit calls to `unsafe_copyto!`, which wraps `vedaMemcpy`,
 for access on the CPU.
 """
 function device_alloc(bytesize::Integer)
-    bytesize == 0 && return DeviceBuffer(VE_NULL, 0)
+    bytesize == 0 && return VEBuffer(VE_NULL, 0)
 
     ptr_ref = Ref{API.VEDAdeviceptr}()
     API.vedaMemAlloc(ptr_ref, bytesize)
 
-    return DeviceBuffer(reinterpret(VEPtr{Cvoid}, ptr_ref[]), bytesize)
+    return VEBuffer(ptr_ref[], bytesize)
 end
 
 
-function free(buf::DeviceBuffer)
+function free(buf::VEBuffer)
     if pointer(buf) != VE_NULL
         API.vedaMemFree(buf.ptr)
     end
 end
+
+
+############################################################
+
 
 
 ## host buffer
@@ -85,7 +88,7 @@ end
 
 A buffer of pinned memory on the CPU, unaccessible to the VE.
 """
-struct HostBuffer <: AbstractBuffer
+mutable struct HostBuffer <: AbstractBuffer
     ptr::Ptr{Cvoid}
     bytesize::Int
 end
@@ -200,9 +203,9 @@ end
 
 ## convenience aliases
 
-const Device  = DeviceBuffer
-const Host    = HostBuffer
-const Array   = ArrayBuffer
+#const Device  = DeviceBuffer
+#const Host    = HostBuffer
+#const Array   = ArrayBuffer
 
 
 #

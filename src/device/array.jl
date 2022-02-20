@@ -8,30 +8,30 @@ export VEDeviceArray, VEDeviceVector, VEDeviceMatrix
 # NOTE: we can't support the typical `tuple or series of integer` style construction,
 #       because we're currently requiring a trailing pointer argument.
 
-struct VEDeviceArray{T,N} <: AbstractArray{T,N}
+struct VEDeviceArray{T,N,A} <: AbstractArray{T,N}
     shape::Dims{N}
-    ptr::LLVMPtr{T}
+    ptr::LLVMPtr{T,A}
 
     # inner constructors, fully parameterized, exact types (ie. Int not <:Integer)
-    VEDeviceArray{T,N}(shape::Dims{N}, ptr::LLVMPtr{T}) where {T,N} = new(shape,ptr)
+    VEDeviceArray{T,N,A}(shape::Dims{N}, ptr::LLVMPtr{T,A}) where {T,A,N} = new(shape,ptr)
 end
 
-const VEDeviceVector = VEDeviceArray{T,1} where {T}
-const VEDeviceMatrix = VEDeviceArray{T,2} where {T}
+const VEDeviceVector = VEDeviceArray{T,1,A} where {T,A}
+const VEDeviceMatrix = VEDeviceArray{T,2,A} where {T,A}
 
 # outer constructors, non-parameterized
-VEDeviceArray(dims::NTuple{N,<:Integer}, p::LLVMPtr{T})                where {T,N} = VEDeviceArray{T,N}(dims, p)
-VEDeviceArray(len::Integer,              p::LLVMPtr{T})                where {T}   = VEDeviceVector{T}((len,), p)
+VEDeviceArray(dims::NTuple{N,<:Integer}, p::LLVMPtr{T,A})    where {T,A,N} = VEDeviceArray{T,N,A}(dims, p)
+VEDeviceArray(len::Integer,              p::LLVMPtr{T,A})    where {T,A}   = VEDeviceVector{T,A}((len,), p)
 
 # outer constructors, partially parameterized
-VEDeviceArray{T}(dims::NTuple{N,<:Integer},   p::LLVMPtr{T}) where {T,N} = VEDeviceArray{T,N}(dims, p)
-VEDeviceArray{T}(len::Integer,                p::LLVMPtr{T}) where {T}   = VEDeviceVector{T}((len,), p)
-VEDeviceArray{T,N}(dims::NTuple{N,<:Integer}, p::LLVMPtr{T}) where {T,N} = VEDeviceArray{T,N}(dims, p)
-VEDeviceVector{T}(len::Integer,               p::LLVMPtr{T}) where {T}   = VEDeviceVector{T}((len,), p)
+VEDeviceArray{T}(dims::NTuple{N,<:Integer},   p::LLVMPtr{T,A}) where {T,A,N} = VEDeviceArray{T,N,A}(dims, p)
+VEDeviceArray{T}(len::Integer,                p::LLVMPtr{T,A}) where {T,A}   = VEDeviceVector{T,A}((len,), p)
+VEDeviceArray{T,N}(dims::NTuple{N,<:Integer}, p::LLVMPtr{T,A}) where {T,A,N} = VEDeviceArray{T,N,A}(dims, p)
+VEDeviceVector{T}(len::Integer,               p::LLVMPtr{T,A}) where {T,A}   = VEDeviceVector{T,A}((len,), p)
 
 # outer constructors, fully parameterized
-VEDeviceArray{T,N}(dims::NTuple{N,<:Integer}, p::LLVMPtr{T}) where {T,N} = VEDeviceArray{T,N}(Int.(dims), p)
-VEDeviceVector{T}(len::Integer,               p::LLVMPtr{T}) where {T}   = VEDeviceVector{T}((Int(len),), p)
+VEDeviceArray{T,N,A}(dims::NTuple{N,<:Integer}, p::LLVMPtr{T,A}) where {T,A,N} = VEDeviceArray{T,N,A}(Int.(dims), p)
+VEDeviceVector{T,A}(len::Integer,               p::LLVMPtr{T,A}) where {T,A}   = VEDeviceVector{T,A}((Int(len),), p)
 
 
 ## getters
@@ -47,7 +47,7 @@ Base.length(g::VEDeviceArray) = prod(g.shape)
 
 ## conversions
 
-Base.unsafe_convert(::Type{LLVMPtr{T}}, a::VEDeviceArray{T,N}) where {T,N} = pointer(a)
+Base.unsafe_convert(::Type{LLVMPtr{T,A}}, a::VEDeviceArray{T,N,A}) where {T,A,N} = pointer(a)
 
 
 ## indexing intrinsics

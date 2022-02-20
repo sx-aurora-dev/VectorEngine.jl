@@ -1,4 +1,4 @@
-const allocated = Dict{VEPtr,Tuple{Mem.DeviceBuffer,Int}}()
+const allocated = Dict{Ptr{Int8},Tuple{Mem.VEBuffer,Int}}()
 
 function allocate(bytes::Int)
     # 0-byte allocations shouldn't hit the pool
@@ -6,9 +6,8 @@ function allocate(bytes::Int)
 
     buf = Mem.device_alloc(bytes)
 
-    ptr = convert(VEPtr{Nothing}, buf)
-    @assert !haskey(allocated, ptr)
-    allocated[ptr] = buf, 1
+    @assert !haskey(allocated, pointer(buf))
+    allocated[pointer(buf)] = buf, 1
 
     return buf
 end
@@ -23,15 +22,15 @@ function alias(ptr)
     return
 end
 
-function release(ptr)
+function release(buf::Mem.VEBuffer)
     # 0-byte allocations shouldn't hit the pool
-    ptr == VE_NULL && return
+    pointer(buf) == VE_NULL && return
 
-    buf, refcount = allocated[ptr]
+    buf, refcount = allocated[pointer(buf)]
     if refcount == 1
-        delete!(allocated, ptr)
+        delete!(allocated, pointer(buf))
     else
-        allocated[ptr] = buf, refcount-1
+        allocated[pointer(buf)] = buf, refcount-1
         return
     end
 

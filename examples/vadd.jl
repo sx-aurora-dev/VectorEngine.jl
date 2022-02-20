@@ -18,7 +18,7 @@ d_c = VEArray(c)
 
 len = prod(dims)
 
-@veda items=len vadd(d_a, d_b, d_c)
+@veda vadd(d_a, d_b, d_c)
 VectorEngine.vesync()
 
 c = Array(d_c)
