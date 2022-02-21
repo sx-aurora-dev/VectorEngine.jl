@@ -30,9 +30,9 @@ include(joinpath("device", "llvm.jl"))
 include(joinpath("device", "strings.jl"))
 
 # Compiler infrastructure
-include("compiler.jl")
-include("execution.jl")
-include("reflection.jl")
+include(joinpath("compiler", "compiler.jl"))
+include(joinpath("compiler", "execution.jl"))
+include(joinpath("compiler", "reflection.jl"))
 
 # array essentials
 include("array.jl")
