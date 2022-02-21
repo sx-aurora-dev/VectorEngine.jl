@@ -14,7 +14,7 @@ function Base.setindex!(args::VEArgs, val::Float32, idx::Integer)
 end
 
 function Base.setindex!(args::VEArgs, val::Float64, idx::Integer)
-    println("setindex Float64 $idx")
+    @debug("setindex Float64 $idx")
     API.vedaArgsSetF64(args.handle, idx, val)
     val
 end
@@ -35,7 +35,7 @@ function Base.setindex!(args::VEArgs, val::Int32, idx::Integer)
 end
 
 function Base.setindex!(args::VEArgs, val::Int64, idx::Integer)
-    println("setindex Int64 $idx")
+    @debug("setindex Int64 $idx")
     API.vedaArgsSetI64(args.handle, idx, val)
     val
 end
@@ -86,14 +86,6 @@ end
 # Pass structs on stack. If mutable, modified elements can be passed back, too.
 function Base.setindex!(args::VEArgs, val::T, idx::Integer) where {T}
     @debug "setindex idx=$idx T=$T val=$val"
-    #if isprimitivetype(T) # reinterpret to Unsigned to get calling convention right
-    #    print("reinterpret to Unsigned: "); @show idx T val
-    #    Tunsigned = equivalent_uint(T)
-    #    if Tunsigned !== nothing
-    #        args[idx] = reinterpret(Tunsigned, val)
-    #        return val
-    #    end
-    #end
     if isstructtype(T) && Base.datatype_pointerfree(T) # Pointers within structs can not be de-referenced
         @debug "seems to be a struct"
         intent = ismutable(val) ? API.VEDA_ARGS_INTENT_INOUT : API.VEDA_ARGS_INTENT_IN

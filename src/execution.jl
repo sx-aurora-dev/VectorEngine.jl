@@ -93,18 +93,18 @@ struct Adaptor end
 # convert host pointers to device pointers
 Adapt.adapt_storage(to::Adaptor, p::VEPtr{T}) where {T} = reinterpret(Ptr{T}, p)
 
-# Base.RefValue isn't VE compatible, so provide a compatible alternative
-struct VERefValue{T} <: Ref{T}
-  x::T
-end
-Base.getindex(r::VERefValue) = r.x
-Adapt.adapt_structure(to::Adaptor, r::Base.RefValue) = VERefValue(adapt(to, r[]))
+## Base.RefValue isn't VE compatible, so provide a compatible alternative
+#struct VERefValue{T} <: Ref{T}
+#  x::T
+#end
+#Base.getindex(r::VERefValue) = r.x
+#Adapt.adapt_structure(to::Adaptor, r::Base.RefValue) = VERefValue(adapt(to, r[]))
 
-# broadcast sometimes passes a ref(type), resulting in a GPU-incompatible DataType box.
-# avoid that by using a special kind of ref that knows about the boxed type.
-struct VERefType{T} <: Ref{DataType} end
-Base.getindex(r::VERefType{T}) where T = T
-Adapt.adapt_structure(to::Adaptor, r::Base.RefValue{<:Union{DataType,Type}}) = VERefType{r[]}()
+## broadcast sometimes passes a ref(type), resulting in a GPU-incompatible DataType box.
+## avoid that by using a special kind of ref that knows about the boxed type.
+#struct VERefType{T} <: Ref{DataType} end
+#Base.getindex(r::VERefType{T}) where T = T
+#Adapt.adapt_structure(to::Adaptor, r::Base.RefValue{<:Union{DataType,Type}}) = VERefType{r[]}()
 
 """
     vedaconvert(x)

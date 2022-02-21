@@ -42,10 +42,12 @@ Int(x::VEPtr)  = Base.bitcast(Int, x)
 UInt(x::VEPtr) = Base.bitcast(UInt, x)
 
 # between regular and VE pointers
-Base.convert(::Type{Ptr{T}}, p::VEPtr) where {T} = Base.bitcast(Ptr{T}, p)
-Base.unsafe_convert(::Type{Ptr{T}}, x::VEPtr) where {T} = convert(Ptr{T}, x)
-Base.convert(::Type{VEPtr{T}}, p::Ptr{T}) where {T} = Base.bitcast(Ptr{T}, p)
-Base.unsafe_convert(::Type{VEPtr{T}}, x::Ptr{T}) where {T} = convert(VEPtr{T}, x)
+Base.convert(::Type{Ptr{T}}, p::VEPtr) where {T} = 
+    throw(ArgumentError("cannot convert from device to host pointer"))
+#Base.unsafe_convert(::Type{Ptr{T}}, x::VEPtr) where {T} = convert(Ptr{T}, x)
+Base.convert(::Type{VEPtr{T}}, p::Ptr{T}) where {T} = # Base.bitcast(Ptr{T}, p)
+    throw(ArgumentError("cannot convert from host to device pointer"))
+#Base.unsafe_convert(::Type{VEPtr{T}}, x::Ptr{T}) where {T} = convert(VEPtr{T}, x)
 
 # between VE pointers
 Base.convert(::Type{VEPtr{T}}, p::VEPtr) where {T} = Base.bitcast(VEPtr{T}, p)

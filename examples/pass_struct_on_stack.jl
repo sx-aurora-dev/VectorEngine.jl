@@ -1,3 +1,4 @@
+# EXCLUDE FROM TESTING
 using VectorEngine
 
 # pass a simple but mutable struct to VE device

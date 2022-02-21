@@ -1,3 +1,4 @@
+# EXCLUDE FROM TESTING
 using VectorEngine
 
 function kernel(dummy::Clong, v::Clong, w::Float64)

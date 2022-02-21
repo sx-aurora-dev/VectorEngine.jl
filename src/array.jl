@@ -9,7 +9,7 @@ export VEArray
 end
 
 mutable struct VEArray{T,N} <: AbstractGPUArray{T,N}
-  buf::Union{Nothing,Mem.VEBuffer}
+  buf::Union{Nothing,Mem.Device}
   dims::Dims{N}
 
   state::ArrayState
@@ -22,7 +22,7 @@ mutable struct VEArray{T,N} <: AbstractGPUArray{T,N}
     Base.isbitstype(T)  || error("VEArray only supports bits types") # allocatedinline on 1.3+
     #ctx = context()
     #dev = device()
-    buf = Mem.VEBuffer(prod(dims) * sizeof(T))          # not needed # , Base.datatype_alignment(T))
+    buf = Mem.Device(prod(dims) * sizeof(T))          # not needed # , Base.datatype_alignment(T))
     obj = new{T,N}(buf, dims, ARRAY_MANAGED) # add these later # , ctx, dev)
     finalizer(unsafe_free!, obj)
     return obj
@@ -284,10 +284,6 @@ function Base.unsafe_copyto!(         # not needed # ctx::ZeContext, dev::ZeDevi
   end
   return dest
 end
-
-## adapter for VEBuffer: on VE side create a corresponding VEDeviceBuffer
-
-Adapt.adapt_storage(::Adaptor, b::Mem.VEBuffer) = Mem.VEDeviceBuffer(b)
 
 
 ## utilities

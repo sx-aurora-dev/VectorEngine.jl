@@ -1,3 +1,4 @@
+# EXCLUDE FROM TESTING
 using VectorEngine
 
 function kernel(v::Int64)

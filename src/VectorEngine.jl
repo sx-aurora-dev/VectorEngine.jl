@@ -9,11 +9,12 @@ using LLVM.Interop
 
 import Core: LLVMPtr
 
+include("pointer.jl")
+
 include("veda/VEDA.jl")
 using .VEDA
 
 # Device and Memory management
-include("pointer.jl")
 include("stream.jl")
 include("memory.jl")
 

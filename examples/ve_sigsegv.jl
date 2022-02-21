@@ -1,3 +1,4 @@
+# EXCLUDE FROM TESTING
 using VectorEngine
 
 function do_sigsegv(addr::Int64)

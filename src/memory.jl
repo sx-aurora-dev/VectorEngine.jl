@@ -34,18 +34,22 @@ Base.unsafe_convert(T::Type{<:Union{Ptr,VEPtr,VEArrayPtr}}, buf::AbstractBuffer)
 ## host side device buffer
 
 """
-    Mem.VEBuffer
+    Mem.DeviceBuffer
 
 Host residing structure representing a buffer of device memory.
 """
-mutable struct VEBuffer <: AbstractBuffer
-    vptr::API.VEDAdeviceptr
+mutable struct DeviceBuffer <: AbstractBuffer
+    #vptr::API.VEDAdeviceptr
+    vptr::VEPtr{Int8}
     ptr::VEPtr{Int8}
     bytesize::Int
-    function VEBuffer(bsize::Int)
-        vp = Ref{API.VEDAdeviceptr}()
+    function DeviceBuffer(bsize::Int)
+        bsize == 0 && return new(VE_NULL, VE_NULL, 0)
+
+        #vp = Ref{API.VEDAdeviceptr}()
+        vp = Ref{VEPtr{Int8}}(0)
         p = Ref{VEPtr{Int8}}(0)
-        API.vedaMemAlloc(vp, bsize)
+        API.vedaMemAlloc(pointer_from_objref(vp), bsize)
         API.vedaMemPtr(pointer_from_objref(p), vp[])
         #VectorEngine.vesync()      # is this needed?
         obj = new(vp[], p[], bsize)
@@ -54,54 +58,31 @@ mutable struct VEBuffer <: AbstractBuffer
     end
 end
 
-function unsafe_free!(buf::VEBuffer)
-    if pointer(buf) != C_NULL
+function unsafe_free!(buf::DeviceBuffer)
+    if pointer(buf) != VE_NULL
         API.vedaMemFree(pointer(buf))
-        buf.vptr = C_NULL
+        buf.vptr = VE_NULL
         buf.ptr = VE_NULL
     end
 end
 
-Base.pointer(buf::VEBuffer) = buf.vptr
-Base.sizeof(buf::VEBuffer) = buf.bytesize
-
-Base.show(io::IO, buf::VEBuffer) =
-    @printf(io, "VEBuffer(%s at %p (%p))", Base.format_bytes(sizeof(buf)), Int(buf.vptr), Int(buf.ptr))
-
-Base.convert(::Type{API.VEDAdeviceptr}, buf::VEBuffer) where {T} = buf.vptr
-
-
-############################################################
-
-## device side device buffer structure
-
 """
-    Mem.VEDeviceBuffer
+    Mem.alloc(DeviceBuffer, bytesize::Integer)
 
-Host residing structure representing a buffer of device memory.
+Allocate `bytesize` bytes of memory on the VE.
 """
-mutable struct VEDeviceBuffer
-    ptr::VEPtr{Int8}
-    bytesize::Int
-    VEDeviceBuffer(p::VEPtr{Int8}, bsize::Int) = new(p, bsize)
-end
+alloc(::Type{DeviceBuffer}, bytesize::Integer) = DeviceBuffer(bytesize)
 
-function VEDeviceBuffer(vb::VEBuffer)
-    vdb = VEDeviceBuffer(vb.ptr, vb.bytesize)
-    #API.vedaMemPtr(pointer(vdb), vb.ptr)
-    #@veprintf("real pointer 0x%p\n", UInt64(vdb.ptr))
-    vdb
-end
+function free(buf::DeviceBuffer) end
 
-Base.pointer(buf::VEDeviceBuffer) = buf.ptr
-Base.sizeof(buf::VEDeviceBuffer) = buf.bytesize
+Base.pointer(buf::DeviceBuffer) = buf.vptr
+Base.sizeof(buf::DeviceBuffer) = buf.bytesize
 
-#Base.show(io::IO, buf::VEBuffer) =
-#    @veprintf(io, "VEDeviceBuffer(%s at %p)", Base.format_bytes(sizeof(buf)), Int(buf.ptr))
+Base.show(io::IO, buf::DeviceBuffer) =
+    @printf(io, "DeviceBuffer(%s at %p (%p))", Base.format_bytes(sizeof(buf)), Int(buf.vptr), Int(buf.ptr))
 
-Base.convert(::Type{VEPtr{T}}, buf::VEDeviceBuffer) where {T} = buf.ptr
-
-Base.unsafe_convert(::Type{VEDeviceBuffer}, vb::VEBuffer) = VEDeviceBuffer(vb)
+#Base.convert(::Type{API.VEDAdeviceptr}, buf::DeviceBuffer) = buf.vptr
+Base.convert(::Type{VEPtr{T}}, buf::DeviceBuffer) where {T} = reinterpret(VEPtr{T}, buf.vptr)
 
 ############################################################
 
@@ -228,9 +209,9 @@ end
 
 ## convenience aliases
 
-#const Device  = DeviceBuffer
-#const Host    = HostBuffer
-#const Array   = ArrayBuffer
+const Device  = DeviceBuffer
+const Host    = HostBuffer
+const Array   = ArrayBuffer
 
 
 #

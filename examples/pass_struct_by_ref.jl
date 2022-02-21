@@ -1,4 +1,4 @@
-using VectorEngine
+using VectorEngine, Test
 
 # pass a simple but mutable struct to VE device
 
@@ -21,8 +21,10 @@ vepsm = VectorEngine.vefunction(pass_struct!, Tuple{Ptr{xm}})
 
 a = xm(1, 100)
 
+#@veda pass_struct!(Ref(a))
 vepsm(Ref(a))
 VectorEngine.vesync()
+@test (a.x == 1) && (a.m == 101)
 @show a
 
 

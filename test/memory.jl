@@ -13,7 +13,7 @@ nb = sizeof(data)
 
 # buffers are untyped, so we use a convenience function to get a typed pointer
 # we prefer to return a device pointer (for managed buffers) to maximize VectorEngine coverage
-typed_pointer(buf::Mem.Device, T) = convert(VePtr{T}, buf)
+typed_pointer(buf::Mem.Device, T) = convert(VEPtr{T}, buf)
 typed_pointer(buf::Mem.Host, T)   = convert(Ptr{T},   buf)
 
 # allocations and copies
