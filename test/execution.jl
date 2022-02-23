@@ -122,7 +122,7 @@ end
 
 
 @testset "calling device function" begin
-    @noinline child(i) = @veprintf("%d\n",i)
+    @noinline child(i) = sink(i)
     function parent()
         child(1)
         return

@@ -36,6 +36,7 @@ macro grab_output(ex)
             open(fname, "w") do fout
                 redirect_stdout(fout) do
                     ret = $(esc(ex))
+                    synchronize()
                 end
             end
             ret, read(fname, String)
