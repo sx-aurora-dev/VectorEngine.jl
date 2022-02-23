@@ -1,8 +1,8 @@
 # Stream management
 
-export VEStream, VEDefaultStream
+export VEStream, VEDefaultStream, synchronize
 
-import .VEDA.API: VEDAstream
+using .VEDA: VEDAstream
 
 mutable struct VEStream
     handle::VEDAstream

@@ -2,7 +2,7 @@
 
 julia_version = "1.8.0-DEV.1486"
 manifest_format = "2.0"
-project_hash = "61f4300371da87d941efa0d004ebd46c8fb8554d"
+project_hash = "3cd088d1d6b768066cc0c62a25a684c30e612b7b"
 
 [[deps.Adapt]]
 deps = ["LinearAlgebra"]
@@ -77,9 +77,9 @@ version = "4.7.1"
 
 [[deps.LLVMExtra_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
-git-tree-sha1 = "62115afed394c016c2d3096c5b85c407b48be96b"
+git-tree-sha1 = "67cc5406b15bd04ff72a45f628bec61d36078908"
 uuid = "dad2f222-ce93-54a1-a47d-0025e8a3acab"
-version = "0.0.13+1"
+version = "0.0.13+3"
 
 [[deps.LibCURL]]
 deps = ["LibCURL_jll", "MozillaCACerts_jll"]
@@ -168,6 +168,12 @@ uuid = "6462fe0b-24de-5631-8697-dd941f90decc"
 [[deps.SparseArrays]]
 deps = ["LinearAlgebra", "Random"]
 uuid = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
+
+[[deps.StaticArrays]]
+deps = ["LinearAlgebra", "Random", "Statistics"]
+git-tree-sha1 = "6354dfaf95d398a1a70e0b28238321d5d17b2530"
+uuid = "90137ffa-7385-5640-81b9-e52037218182"
+version = "1.4.0"
 
 [[deps.Statistics]]
 deps = ["LinearAlgebra", "SparseArrays"]

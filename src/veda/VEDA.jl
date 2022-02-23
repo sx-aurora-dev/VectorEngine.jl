@@ -1,6 +1,12 @@
 module VEDA
     include("api.jl")
 
+    #using .API
+
+    include("enum.jl")
+    include("error.jl")
+    include("devices.jl")
+
     export VEModule, VEFunction, VEContext
 
     # Hardcoded linker path: from binutils-ve
@@ -9,27 +15,27 @@ module VEDA
     # TODO: Find these at build time.
 
     mutable struct VEContext
-        handle::API.VEDAcontext
+        handle::VEDAcontext
 
         function VEContext(dev)
-            r_handle = Ref{API.VEDAcontext}()
-            API.vedaDevicePrimaryCtxRetain(r_handle, dev)
+            r_handle = Ref{VEDAcontext}()
+            @check vedaDevicePrimaryCtxRetain(r_handle, dev)
             ctx = new(r_handle[])
             finalizer(ctx) do ctx
-                API.vedaDevicePrimaryCtxRelease(ctx.handle)
+                vedaDevicePrimaryCtxRelease(ctx.handle)
             end
         end
     end
 
     mutable struct VEModule
-        handle::API.VEDAmodule
+        handle::VEDAmodule
 
         function VEModule(vso::String)
-            r_handle = Ref{API.VEDAmodule}()
-            API.vedaModuleLoad(r_handle, vso)
+            r_handle = Ref{VEDAmodule}()
+            @check vedaModuleLoad(r_handle, vso)
             mod = new(r_handle[])
             finalizer(mod) do mod
-                API.vedaModuleUnload(mod.handle)
+                vedaModuleUnload(mod.handle)
             end
             return mod
         end
@@ -49,12 +55,12 @@ module VEDA
     end
 
     mutable struct VEFunction
-        handle::API.VEDAfunction
+        handle::VEDAfunction
         mod::VEModule
 
         function VEFunction(mod, fname)
-            r_handle = Ref{API.VEDAfunction}()
-            API.vedaModuleGetFunction(r_handle, mod.handle, fname)
+            r_handle = Ref{VEDAfunction}()
+            @check vedaModuleGetFunction(r_handle, mod.handle, fname)
             new(r_handle[], mod)
         end
     end
@@ -67,14 +73,14 @@ module VEDA
     const libcache = Base.WeakKeyDict{VEContext, VEModule}()
 
     function __init__()
-        isempty(API.libveda) && return
+        isempty(libveda) && return
         # limiting to one core for now, as we're not using OpenMP
         ENV["VE_OMP_NUM_THREADS"] = 1
         # TODO: Do a lazy init
-        API.vedaInit(0)
+        vedaInit(0)
         ctx = VEContext(0)
         pctx[] = ctx
-        API.vedaCtxSetCurrent(ctx.handle)
-        #atexit(API.vedaExit)
+        vedaCtxSetCurrent(ctx.handle)
+        #atexit(vedaExit)
     end
 end # module

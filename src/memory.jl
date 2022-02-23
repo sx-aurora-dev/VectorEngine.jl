@@ -5,11 +5,10 @@ export Mem, available_memory, total_memory
 module Mem
 
 using ..VectorEngine
-import .VectorEngine: VEDA
-import .VEDA: API
-
+using ..VectorEngine.VEDA: vedaMemAlloc, vedaMemPtr, vedaMemFree, vedaMemGetInfo,
+    vedaMemAllocHost, vedaMemFreeHost
+    
 using Printf
-
 
 #
 # buffers
@@ -28,7 +27,8 @@ Base.convert(T::Type{<:Union{Ptr,VEPtr,VEArrayPtr}}, buf::AbstractBuffer) =
 #
 # taking the pointer of a buffer means returning the underlying pointer,
 # and not the pointer of the buffer object itself.
-Base.unsafe_convert(T::Type{<:Union{Ptr,VEPtr,VEArrayPtr}}, buf::AbstractBuffer) = convert(T, buf)
+Base.unsafe_convert(T::Type{<:Union{Ptr,VEPtr,VEArrayPtr}}, buf::AbstractBuffer) =
+    convert(T, buf)
 
 
 ## host side device buffer
@@ -39,18 +39,18 @@ Base.unsafe_convert(T::Type{<:Union{Ptr,VEPtr,VEArrayPtr}}, buf::AbstractBuffer)
 Host residing structure representing a buffer of device memory.
 """
 mutable struct DeviceBuffer <: AbstractBuffer
-    #vptr::API.VEDAdeviceptr
+    #vptr::VEDAdeviceptr
     vptr::VEPtr{Int8}
     ptr::VEPtr{Int8}
     bytesize::Int
     function DeviceBuffer(bsize::Int)
         bsize == 0 && return new(VE_NULL, VE_NULL, 0)
 
-        #vp = Ref{API.VEDAdeviceptr}()
+        #vp = Ref{VEDAdeviceptr}()
         vp = Ref{VEPtr{Int8}}(0)
         p = Ref{VEPtr{Int8}}(0)
-        API.vedaMemAlloc(pointer_from_objref(vp), bsize)
-        API.vedaMemPtr(pointer_from_objref(p), vp[])
+        vedaMemAlloc(pointer_from_objref(vp), bsize)
+        vedaMemPtr(pointer_from_objref(p), vp[])
         #VectorEngine.vesync()      # is this needed?
         obj = new(vp[], p[], bsize)
         finalizer(unsafe_free!, obj)
@@ -60,7 +60,7 @@ end
 
 function unsafe_free!(buf::DeviceBuffer)
     if pointer(buf) != VE_NULL
-        API.vedaMemFree(pointer(buf))
+        vedaMemFree(pointer(buf))
         buf.vptr = VE_NULL
         buf.ptr = VE_NULL
     end
@@ -81,7 +81,7 @@ Base.sizeof(buf::DeviceBuffer) = buf.bytesize
 Base.show(io::IO, buf::DeviceBuffer) =
     @printf(io, "DeviceBuffer(%s at %p (%p))", Base.format_bytes(sizeof(buf)), Int(buf.vptr), Int(buf.ptr))
 
-#Base.convert(::Type{API.VEDAdeviceptr}, buf::DeviceBuffer) = buf.vptr
+#Base.convert(::Type{VEDAdeviceptr}, buf::DeviceBuffer) = buf.vptr
 Base.convert(::Type{VEPtr{T}}, buf::DeviceBuffer) where {T} = reinterpret(VEPtr{T}, buf.vptr)
 
 ############################################################
@@ -123,14 +123,14 @@ function alloc(::Type{HostBuffer}, bytesize::Integer)
     bytesize == 0 && return HostBuffer(C_NULL, 0)
 
     ptr_ref = Ref{Ptr{Cvoid}}()
-    API.vedaMemAllocHost(ptr_ref, bytesize)
+    vedaMemAllocHost(ptr_ref, bytesize)
 
     return HostBuffer(ptr_ref[], bytesize)
 end
 
 function free(buf::HostBuffer)
     if pointer(buf) != VE_NULL
-        API.vedaMemFreeHost(buf.ptr)
+        vedaMemFreeHost(buf.ptr)
     end
 end
 
@@ -196,14 +196,14 @@ function alloc(::Type{<:ArrayBuffer{T}}, dims::Dims{N}) where {T,N}
         0))
 
     handle_ref = Ref{CUarray}()
-    API.vedaArray3DCreate(handle_ref, allocateArray_ref)
+    vedaArray3DCreate(handle_ref, allocateArray_ref)
     ptr = reinterpret(VEArrayPtr{T}, handle_ref[])
 
     return ArrayBuffer{T,N}(ptr, dims)
 end
 
 function free(buf::ArrayBuffer)
-    API.vedaArrayDestroy(buf.ptr)
+    vedaArrayDestroy(buf.ptr)
 end
 
 
@@ -241,11 +241,11 @@ for T in [Int8, UInt8, Int16, UInt16, Int32, UInt32, Int64, UInt64, Float32, Flo
         if async
           stream===nothing &&
               throw(ArgumentError("Asynchronous memory operations require a stream."))
-            $(getproperty(VectorEngine.VEDA.API, fn_async))(ptr, val, len, stream)
+            $(getproperty(VectorEngine.VEDA, fn_async))(ptr, val, len, stream)
         else
           stream===nothing ||
               throw(ArgumentError("Synchronous memory operations cannot be issued on a stream."))
-            $(getproperty(VectorEngine.VEDA.API, fn_sync))(ptr, val, len)
+            $(getproperty(VectorEngine.VEDA, fn_sync))(ptr, val, len)
         end
     end
 end
@@ -263,11 +263,11 @@ for (f, fa, srcPtrTy, dstPtrTy) in (("vedaMemcpyDtoH", "vedaMemcpyDtoHAsync", VE
         if async
             stream===nothing &&
                 throw(ArgumentError("Asynchronous memory operations require a stream."))
-            $(getproperty(VectorEngine.VEDA.API, Symbol(fa)))(dst, src, N*sizeof(T), stream)
+            $(getproperty(VectorEngine.VEDA, Symbol(fa)))(dst, src, N*sizeof(T), stream)
         else
             stream===nothing ||
                 throw(ArgumentError("Synchronous memory operations cannot be issued on a stream."))
-            $(getproperty(VectorEngine.VEDA.API, Symbol(f)))(dst, src, N*sizeof(T))
+            $(getproperty(VectorEngine.VEDA, Symbol(f)))(dst, src, N*sizeof(T))
         end
         return dst
     end
@@ -279,11 +279,11 @@ function Base.unsafe_copyto!(dst::VEArrayPtr{T}, src::Ptr{T}, N::Integer;
     if async
         stream===nothing &&
             throw(ArgumentError("Asynchronous memory operations require a stream."))
-        API.vedaMemcpyHtoDAsync(dst, src, N*sizeof(T), stream)
+        vedaMemcpyHtoDAsync(dst, src, N*sizeof(T), stream)
     else
         stream===nothing ||
             throw(ArgumentError("Synchronous memory operations cannot be issued on a stream."))
-        API.vedaMemcpyHtoD(dst+doffs-1, src, N*sizeof(T))
+        vedaMemcpyHtoD(dst+doffs-1, src, N*sizeof(T))
     end
 end
 
@@ -293,19 +293,19 @@ function Base.unsafe_copyto!(dst::Ptr{T}, src::VEArrayPtr{T}, soffs::Integer, N:
     if async
         stream===nothing &&
             throw(ArgumentError("Asynchronous memory operations require a stream."))
-        API.vedaMemcpyAtoHAsync(dst, src, soffs, N*sizeof(T), stream)
+        vedaMemcpyAtoHAsync(dst, src, soffs, N*sizeof(T), stream)
     else
         stream===nothing ||
             throw(ArgumentError("Synchronous memory operations cannot be issued on a stream."))
-        API.vedaMemcpyAtoH(dst, src, soffs, N*sizeof(T))
+        vedaMemcpyAtoH(dst, src, soffs, N*sizeof(T))
     end
 end
 
 Base.unsafe_copyto!(dst::VEArrayPtr{T}, doffs::Integer, src::VEPtr{T}, N::Integer) where {T} =
-    API.vedaMemcpyDtoA(dst, doffs, src, N*sizeof(T))
+    vedaMemcpyDtoA(dst, doffs, src, N*sizeof(T))
 
 Base.unsafe_copyto!(dst::VEPtr{T}, src::VEArrayPtr{T}, soffs::Integer, N::Integer) where {T} =
-    API.vedaMemcpyAtoD(dst, src, soffs, N*sizeof(T))
+    vedaMemcpyAtoD(dst, src, soffs, N*sizeof(T))
 
 Base.unsafe_copyto!(dst::VEArrayPtr, src, N::Integer; kwargs...) =
     Base.unsafe_copyto!(dst, 0, src, N; kwargs...)
@@ -318,7 +318,7 @@ Base.unsafe_copyto!(dst, src::VEArrayPtr, N::Integer; kwargs...) =
 function info()
     free_ref = Ref{Csize_t}()
     total_ref = Ref{Csize_t}()
-    API.vedaMemGetInfo(free_ref, total_ref)
+    vedaMemGetInfo(free_ref, total_ref)
     return convert(Int, free_ref[]), convert(Int, total_ref[])
 end
 

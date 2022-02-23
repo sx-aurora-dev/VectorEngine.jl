@@ -19,9 +19,12 @@ include("setup.jl")
     @testset "Arrays" begin
         include("array.jl")
     end
-    @testset "Examples" begin
-        include("examples.jl")
+    @testset "Execution" begin
+        include("execution.jl")
     end
+    #@testset "Examples" begin
+    #    include("examples.jl")
+    #end
 
     
     #@testset "Device Tests" begin

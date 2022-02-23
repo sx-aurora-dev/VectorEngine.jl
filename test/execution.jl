@@ -13,27 +13,27 @@ dummy() = return
 @testset "low-level interface" begin
     k = vefunction(dummy)
     k()
-    k(; items=1)
+    #k(; items=1)
 end
 
 
-@testset "launch configuration" begin
-    @veda dummy()
-
-    @veda items=1 dummy()
-    @veda items=(1,1) dummy()
-    @veda items=(1,1,1) dummy()
-
-    @veda groups=1 dummy()
-    @veda groups=(1,1) dummy()
-    @veda groups=(1,1,1) dummy()
-end
+#@testset "launch configuration" begin
+#    @veda dummy()
+#
+#    @veda items=1 dummy()
+#    @veda items=(1,1) dummy()
+#    @veda items=(1,1,1) dummy()
+#
+#    @veda groups=1 dummy()
+#    @veda groups=(1,1) dummy()
+#    @veda groups=(1,1,1) dummy()
+#end
 
 
 @testset "launch=false" begin
     k = @veda launch=false dummy()
     k()
-    k(; items=1)
+    #k(; items=1)
 end
 
 
@@ -53,13 +53,13 @@ end
     VectorEngine.code_typed(dummy, Tuple{})
     VectorEngine.code_warntype(devnull, dummy, Tuple{})
     VectorEngine.code_llvm(devnull, dummy, Tuple{})
-    VectorEngine.code_spirv(devnull, dummy, Tuple{})
+    VectorEngine.code_native(devnull, dummy, Tuple{})
 
     @device_code_lowered @veda dummy()
     @device_code_typed @veda dummy()
     @device_code_warntype io=devnull @veda dummy()
     @device_code_llvm io=devnull @veda dummy()
-    @device_code_spirv io=devnull @veda dummy()
+    @device_code_native io=devnull @veda dummy()
 
     mktempdir() do dir
         @device_code dir=dir @veda dummy()
@@ -70,13 +70,13 @@ end
     # make sure kernel name aliases are preserved in the generated code
     @test occursin("julia_dummy", sprint(io->(@device_code_llvm io=io optimize=false @veda dummy())))
     @test occursin("julia_dummy", sprint(io->(@device_code_llvm io=io @veda dummy())))
-    @test occursin("julia_dummy", sprint(io->(@device_code_spirv io=io @veda dummy())))
+    @test occursin("julia_dummy", sprint(io->(@device_code_native io=io @veda dummy())))
 
     # make sure invalid kernels can be partially reflected upon
     let
         invalid_kernel() = throw()
-        @test_throws VectorEngine.KernelError @veda invalid_kernel()
-        @test_throws VectorEngine.KernelError @grab_output @device_code_warntype @veda invalid_kernel()
+        @test_throws VectorEngine.VEDA.VEError @veda invalid_kernel()
+        @test_throws VectorEngine.VEDA.VEError @grab_output @device_code_warntype @veda invalid_kernel()
         out, err = @grab_output begin
             try
                 @device_code_warntype @veda invalid_kernel()
@@ -94,7 +94,7 @@ end
 
     # set name of kernel
     @test occursin("julia_mykernel", sprint(io->(@device_code_llvm io=io begin
-        k = zefunction(dummy, name="mykernel")
+        k = vefunction(dummy, name="mykernel")
         k()
     end)))
 end
@@ -122,19 +122,19 @@ end
 
 
 @testset "calling device function" begin
-    @noinline child(i) = sink(i)
+    @noinline child(i) = @veprintf("%d\n",i)
     function parent()
         child(1)
         return
     end
 
-    @veda parent()
+    VectorEngine.@veda parent()
 end
 
 
 @testset "varargs" begin
     function kernel(args...)
-        VectorEngine.@print(args[2])
+        VectorEngine.@veprint(args[2])
         return
     end
 
@@ -157,11 +157,9 @@ len = prod(dims)
 
 @testset "manually allocated" begin
     function kernel(input, output)
-        i = get_global_id(0)
-
-        val = input[i]
-        output[i] = val
-
+        for i = 1:length(input)
+            output[i] = input[i]
+        end
         return
     end
 
@@ -171,18 +169,18 @@ len = prod(dims)
     input_dev = VEArray(input)
     output_dev = VEArray(output)
 
-    @veda items=len kernel(input_dev, output_dev)
+    @veda kernel(input_dev, output_dev)
     @test input ≈ Array(output_dev)
 end
 
 
 @testset "scalar through single-value array" begin
     function kernel(a, x)
-        i = get_global_id(0)
-        max = get_global_size(0)
-        if i == max
-            _val = a[i]
-            x[] = _val
+        max = length(a)
+        for i = 1:max
+            if i == max
+                x[] = a[i]
+            end
         end
         return
     end
@@ -193,7 +191,7 @@ end
     arr_dev = VEArray(arr)
     val_dev = VEArray(val)
 
-    @veda items=len kernel(arr_dev, val_dev)
+    @veda kernel(arr_dev, val_dev)
     @test arr[dims...] ≈ Array(val_dev)[1]
 end
 
@@ -201,11 +199,11 @@ end
 @testset "scalar through single-value array, using device function" begin
     @noinline child(a, i) = a[i]
     function parent(a, x)
-        i = get_global_id(0)
-        max = get_global_size(0)
-        if i == max
-            _val = child(a, i)
-            x[] = _val
+        max = length(a)
+        for i = 1:max
+            if i == max
+                x[] = child(a, i)
+            end
         end
         return
     end
@@ -216,7 +214,7 @@ end
     arr_dev = VEArray(arr)
     val_dev = VEArray(val)
 
-    @veda items=len parent(arr_dev, val_dev)
+    @veda parent(arr_dev, val_dev)
     @test arr[dims...] ≈ Array(val_dev)[1]
 end
 
@@ -256,22 +254,24 @@ end
     @eval struct ExecGhost end
 
     function kernel(ghost, a, b, c)
-        i = get_global_id(0)
-        c[i] = a[i] + b[i]
+        for i = 1:length(a)
+            c[i] = a[i] + b[i]
+        end
         return
     end
-    @veda items=len kernel(ExecGhost(), d_a, d_b, d_c)
+    @veda kernel(ExecGhost(), d_a, d_b, d_c)
     @test a+b == Array(d_c)
 
 
     # bug: ghost type function parameters confused aggregate type rewriting
 
     function kernel(ghost, out, aggregate)
-        i = get_global_id(0)
-        out[i] = aggregate[1]
+        for i = 1:length(out)
+            out[i] = aggregate[1]
+        end
         return
     end
-    @veda items=len kernel(ExecGhost(), d_c, (42,))
+    @veda kernel(ExecGhost(), d_c, (42,))
 
     @test all(val->val==42, Array(d_c))
 end
@@ -372,6 +372,7 @@ end
 
 @testset "object invoke" begin
     # this mimics what is generated by closure conversion
+    # FAIL on VE, kills VEO context
 
     @eval struct KernelObject{T} <: Function
         val::T
@@ -396,6 +397,7 @@ end
 end
 
 @testset "closures" begin
+    # FAIL on VE, kills VEO context
     function outer(a_dev, val)
        function inner(a)
             # captures `val`
@@ -492,8 +494,8 @@ end
         eval(body)
         args = [j for j in 1:i]
         call = Expr(:call, :kernel, val_dev, args...)
-        cudacall = :(@veda $call)
-        eval(cudacall)
+        vedacall = :(@veda $call)
+        eval(vedacall)
         @test Array(val_dev)[1] == sum(args)
     end
 end
@@ -534,18 +536,18 @@ end
 
 ############################################################################################
 
-@testset "#55: invalid integers created by alloc_opt" begin
-    function f(a)
-        x = SVector(0f0, 0f0)
-        v = MVector{3, Float32}(undef)
-        for (i,_) in enumerate(x)
-            v[i] = 1.0f0
-        end
-        a[1] = v[1]
-        return nothing
-    end
-    @veda f(VEArray(zeros(1)))
-end
+#?#@testset "#55: invalid integers created by alloc_opt" begin
+#?#    function f(a)
+#?#        x = SVector(0f0, 0f0)
+#?#        v = MVector{3, Float32}(undef)
+#?#        for (i,_) in enumerate(x)
+#?#            v[i] = 1.0f0
+#?#        end
+#?#        a[1] = v[1]
+#?#        return nothing
+#?#    end
+#?#    @veda f(VEArray(zeros(1)))
+#?#end
 
 
 ############################################################################################

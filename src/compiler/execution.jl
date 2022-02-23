@@ -1,6 +1,6 @@
 # VE execution support
 
-export @veda, vedaconvert, vefunction
+export @veda, vedaconvert, vefunction, vesync, synchronize
 
 ## high-level @cuda interface
 
@@ -40,7 +40,7 @@ macro veda(ex...)
         split_kwargs(kwargs,
                      [:launch],
                      [:name],
-                     [:cooperative, :blocks, :threads, :stream])
+                     [:stream])
     if !isempty(other_kwargs)
         key,val = first(other_kwargs).args
         throw(ArgumentError("Unsupported keyword argument '$key'"))
@@ -267,9 +267,12 @@ function (kernel::HostKernel)(args...; kwargs...)
 end
 
 @inline function vecall(kernel::HostKernel, tt, args...; kwargs...)
-    err, veargs = VEDA.vecall(kernel.fun, tt, args...; kwargs...,)
+    err, veargs = VEDA.vecall(kernel.fun, tt, args...; kwargs...)
 end
 
 @inline function vesync(; kwargs...)
     VEDA.vesync(; kwargs...)
 end
+
+synchronize(; kwargs...) = vesync(; kwargs...)
+

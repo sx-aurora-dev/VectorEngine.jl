@@ -1,4 +1,4 @@
-module API
+#module API
 using CEnum
 using Libdl
 
@@ -16,4 +16,4 @@ const VEDAhost_function = Ptr{Cvoid}
 
 include(joinpath(@__DIR__, "..", "..", "gen", "libveda_common.jl"))
 include(joinpath(@__DIR__, "..", "..", "gen", "libveda.jl"))
-end
+#end

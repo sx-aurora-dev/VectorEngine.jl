@@ -1,62 +1,62 @@
 struct VEArgs
-    handle::API.VEDAargs
+    handle::VEDAargs
     objs::Base.IdSet
     function VEArgs()
-        r_handle = Ref{API.VEDAargs}()
-        API.vedaArgsCreate(r_handle)
+        r_handle = Ref{VEDAargs}()
+        vedaArgsCreate(r_handle)
         return new(r_handle[], Base.IdSet())
     end
 end
 
 function Base.setindex!(args::VEArgs, val::Float32, idx::Integer)
-    API.vedaArgsSetF32(args.handle, idx, val)
+    vedaArgsSetF32(args.handle, idx, val)
     val
 end
 
 function Base.setindex!(args::VEArgs, val::Float64, idx::Integer)
     @debug("setindex Float64 $idx")
-    API.vedaArgsSetF64(args.handle, idx, val)
+    vedaArgsSetF64(args.handle, idx, val)
     val
 end
 
 function Base.setindex!(args::VEArgs, val::Int8, idx::Integer)
-    API.vedaArgsSetI8(args.handle, idx, val)
+    vedaArgsSetI8(args.handle, idx, val)
     val
 end
 
 function Base.setindex!(args::VEArgs, val::Int16, idx::Integer)
-    API.vedaArgsSetI16(args.handle, idx, val)
+    vedaArgsSetI16(args.handle, idx, val)
     val
 end
 
 function Base.setindex!(args::VEArgs, val::Int32, idx::Integer)
-    API.vedaArgsSetI32(args.handle, idx, val)
+    vedaArgsSetI32(args.handle, idx, val)
     val
 end
 
 function Base.setindex!(args::VEArgs, val::Int64, idx::Integer)
     @debug("setindex Int64 $idx")
-    API.vedaArgsSetI64(args.handle, idx, val)
+    vedaArgsSetI64(args.handle, idx, val)
     val
 end
 
 function Base.setindex!(args::VEArgs, val::UInt8, idx::Integer)
-    API.vedaArgsSetU8(args.handle, idx, val)
+    vedaArgsSetU8(args.handle, idx, val)
     val
 end
 
 function Base.setindex!(args::VEArgs, val::UInt16, idx::Integer)
-    API.vedaArgsSetU16(args.handle, idx, val)
+    vedaArgsSetU16(args.handle, idx, val)
     val
 end
 
 function Base.setindex!(args::VEArgs, val::UInt32, idx::Integer)
-    API.vedaArgsSetU32(args.handle, idx, val)
+    vedaArgsSetU32(args.handle, idx, val)
     val
 end
 
 function Base.setindex!(args::VEArgs, val::UInt64, idx::Integer)
-    API.vedaArgsSetU64(args.handle, idx, val)
+    vedaArgsSetU64(args.handle, idx, val)
     val
 end
 
@@ -64,8 +64,8 @@ end
 # - immutable, therefore only INTENT_IN
 function Base.setindex!(args::VEArgs, val::T, idx::Integer) where {T<:AbstractString}
     push!(args.objs, val)
-    API.vedaArgsSetStack(args.handle, idx, Base.unsafe_convert(Ptr{Cvoid}, pointer(val)),
-                         API.VEDA_ARGS_INTENT_IN, sizeof(val))
+    vedaArgsSetStack(args.handle, idx, Base.unsafe_convert(Ptr{Cvoid}, pointer(val)),
+                         VEDA_ARGS_INTENT_IN, sizeof(val))
     val
 end
 
@@ -88,18 +88,18 @@ function Base.setindex!(args::VEArgs, val::T, idx::Integer) where {T}
     @debug "setindex idx=$idx T=$T val=$val"
     if isstructtype(T) && Base.datatype_pointerfree(T) # Pointers within structs can not be de-referenced
         @debug "seems to be a struct"
-        intent = ismutable(val) ? API.VEDA_ARGS_INTENT_INOUT : API.VEDA_ARGS_INTENT_IN
+        intent = ismutable(val) ? VEDA_ARGS_INTENT_INOUT : VEDA_ARGS_INTENT_IN
         ref = Ref(val)
         push!(args.objs, ref) # root the reference
         ptr = Base.unsafe_convert(Ptr{Cvoid}, ref)
-        API.vedaArgsSetStack(args.handle, idx, ptr, intent, sizeof(T))
+        vedaArgsSetStack(args.handle, idx, ptr, intent, sizeof(T))
         val
     elseif T <: Base.RefValue && isassigned(val)
         @debug "seems to be a refvalue"
-        intent = ismutable(val[]) ? API.VEDA_ARGS_INTENT_INOUT : API.VEDA_ARGS_INTENT_IN
+        intent = ismutable(val[]) ? VEDA_ARGS_INTENT_INOUT : VEDA_ARGS_INTENT_IN
         push!(args.objs, val) # root the reference
         ptr = Base.unsafe_convert(Ptr{Cvoid}, val)
-        API.vedaArgsSetStack(args.handle, idx, ptr, intent, sizeof(val[]))
+        vedaArgsSetStack(args.handle, idx, ptr, intent, sizeof(val[]))
         val
     else
         error("VEArgs could not handle $T")
@@ -129,8 +129,8 @@ function vecall(func::VEFunction, tt, args...; stream = C_NULL)
     convert_args(veargs, tt, args...)
 
     # TOOD: Can we add a callback that will do args cleanup?
-    err = API.vedaLaunchKernelEx(func.handle, stream, veargs.handle, #=destroyArgs=# true, C_NULL)
-    if err != API.VEDA_SUCCESS
+    err = vedaLaunchKernelEx(func.handle, stream, veargs.handle, #=destroyArgs=# true, C_NULL)
+    if err != VEDA_SUCCESS
         throw(VEOCommandError("kernel launch failed"))
     end
     err, veargs
@@ -146,10 +146,10 @@ end
 # synchronize a stream
 # throw an exception if something went very wrong
 function vesync(; stream = C_NULL)
-    err = API.vedaStreamSynchronize(stream)
-    if err == API.VEDA_ERROR_VEO_COMMAND_EXCEPTION
+    err = vedaStreamSynchronize(stream)
+    if err == VEDA_ERROR_VEO_COMMAND_EXCEPTION
         throw(VEContextException("VE context died with an exception"))
-    elseif err == API.VEDA_ERROR_VEO_COMMAND_ERROR
+    elseif err == VEDA_ERROR_VEO_COMMAND_ERROR
         throw(VEOCommandError("VH side VEO command error"))
     end
 end
