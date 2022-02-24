@@ -98,7 +98,7 @@ Adapt.adapt_storage(to::Adaptor, p::VEPtr{T}) where {T} = reinterpret(Ptr{T}, p)
 #  x::T
 #end
 #Base.getindex(r::VERefValue) = r.x
-#Adapt.adapt_structure(to::Adaptor, r::Base.RefValue) = VERefValue(adapt(to, r[]))
+Adapt.adapt_structure(to::Adaptor, r::Base.RefValue) = VERefValue(adapt(to, r[]))
 
 ## broadcast sometimes passes a ref(type), resulting in a GPU-incompatible DataType box.
 ## avoid that by using a special kind of ref that knows about the boxed type.

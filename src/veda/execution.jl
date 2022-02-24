@@ -1,3 +1,5 @@
+using ..VectorEngine: VERefValue
+
 struct VEArgs
     handle::VEDAargs
     objs::Base.IdSet
@@ -94,8 +96,15 @@ function Base.setindex!(args::VEArgs, val::T, idx::Integer) where {T}
         ptr = Base.unsafe_convert(Ptr{Cvoid}, ref)
         vedaArgsSetStack(args.handle, idx, ptr, intent, sizeof(T))
         val
-    elseif T <: Base.RefValue && isassigned(val)
-        @debug "seems to be a refvalue"
+    elseif T <: VERefValue #&& isassigned(val[])
+        @debug "seems to be a VERefValue"
+        intent = ismutable(val[]) ? VEDA_ARGS_INTENT_INOUT : VEDA_ARGS_INTENT_IN
+        push!(args.objs, val) # root the reference
+        ptr = Base.unsafe_convert(Ptr{Cvoid}, Ref(val[]))
+        vedaArgsSetStack(args.handle, idx, ptr, intent, sizeof(val[]))
+        val
+    elseif T <: Base.RefValue && isassigned(val[])
+        @debug "seems to be a RefValue"
         intent = ismutable(val[]) ? VEDA_ARGS_INTENT_INOUT : VEDA_ARGS_INTENT_IN
         push!(args.objs, val) # root the reference
         ptr = Base.unsafe_convert(Ptr{Cvoid}, val)

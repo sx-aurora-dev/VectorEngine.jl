@@ -9,6 +9,7 @@ using LLVM.Interop
 
 import Core: LLVMPtr
 
+include("types.jl")
 include("pointer.jl")
 
 include("veda/VEDA.jl")
