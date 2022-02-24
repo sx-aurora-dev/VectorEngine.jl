@@ -18,4 +18,4 @@ vefunc = VectorEngine.vefunction(kernel)
 # Launch kernel
 vefunc()
 
-VectorEngine.vesync()
+synchronize()

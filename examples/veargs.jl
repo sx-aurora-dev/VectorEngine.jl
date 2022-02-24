@@ -15,4 +15,4 @@ vefunc = VectorEngine.vefunction(kernel, Tuple{Clong, Clong, Float64})
 vefunc(Clong(123), Float64(2.34))
 vefunc(0, Clong(123), Float64(2.34))
 
-VectorEngine.vesync()
+synchronize()

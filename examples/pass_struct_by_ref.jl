@@ -23,7 +23,7 @@ a = xm(1, 100)
 
 #@veda pass_struct!(Ref(a))
 vepsm(Ref(a))
-VectorEngine.vesync()
+synchronize()
 @test (a.x == 1) && (a.m == 101)
 @show a
 

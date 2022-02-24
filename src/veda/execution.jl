@@ -143,13 +143,3 @@ struct VEOCommandError <: Exception
     reason::String
 end
 
-# synchronize a stream
-# throw an exception if something went very wrong
-function vesync(; stream = C_NULL)
-    err = vedaStreamSynchronize(stream)
-    if err == VEDA_ERROR_VEO_COMMAND_EXCEPTION
-        throw(VEContextException("VE context died with an exception"))
-    elseif err == VEDA_ERROR_VEO_COMMAND_ERROR
-        throw(VEOCommandError("VH side VEO command error"))
-    end
-end

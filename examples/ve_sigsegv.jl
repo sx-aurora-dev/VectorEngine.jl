@@ -10,4 +10,4 @@ vesig = VectorEngine.vefunction(do_sigsegv, Tuple{Int64})
 
 vesig(0)
 
-VectorEngine.vesync()
+synchronize()

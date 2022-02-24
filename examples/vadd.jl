@@ -19,7 +19,7 @@ d_c = VEArray(c)
 len = prod(dims)
 
 @veda vadd(d_a, d_b, d_c)
-VectorEngine.vesync()
+synchronize()
 
 c = Array(d_c)
 @test a+b ≈ c

@@ -10,4 +10,4 @@ vefunc = VectorEngine.vefunction(kernel, Tuple{Int64})
 
 vefunc(1234)
 
-VectorEngine.vesync()
+synchronize()

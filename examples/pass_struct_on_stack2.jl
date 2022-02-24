@@ -6,10 +6,14 @@ mutable struct xm
       m::Int64
 end
 
-function pass_struct!(r::xm)
+@noinline function _pass_struct!(r::xm)
     @veprintf("r.x=%d, r.m=%ld\n", r.x, r.m)
     r.m = r.m + 1
     @veprintf("r.m=%ld\n", r.m)
+end
+
+function pass_struct!(r)
+    _pass_struct!(r)
     return
 end
 

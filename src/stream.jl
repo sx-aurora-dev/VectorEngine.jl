@@ -2,7 +2,7 @@
 
 export VEStream, VEDefaultStream, synchronize
 
-using .VEDA: VEDAstream
+using .VEDA: VEDAstream, vedaStreamSynchronize, ERROR_VEO_COMMAND_EXCEPTION, ERROR_VEO_COMMAND_ERROR
 
 mutable struct VEStream
     handle::VEDAstream
@@ -24,6 +24,16 @@ Return the default stream.
 """
     synchronize(s::VEStream)
 
-Wait until a stream's tasks are completed.
+Wait until a stream's tasks are completed. Return nothing.
+Throw an exception if something went very wrong.
 """
-synchronize(s::VEStream) = vedaStreamSynchronize(s)
+@inline function synchronize(s::VEStream)
+    err = vedaStreamSynchronize(s.handle)
+    if err == ERROR_VEO_COMMAND_EXCEPTION
+        throw(VEContextException("VE context died with an exception"))
+    elseif err == ERROR_VEO_COMMAND_ERROR
+        throw(VEOCommandError("VH side VEO command error"))
+    end
+end
+
+@inline synchronize() = synchronize(VEDefaultStream())

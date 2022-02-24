@@ -269,10 +269,3 @@ end
 @inline function vecall(kernel::HostKernel, tt, args...; kwargs...)
     err, veargs = VEDA.vecall(kernel.fun, tt, args...; kwargs...)
 end
-
-@inline function vesync(; kwargs...)
-    VEDA.vesync(; kwargs...)
-end
-
-synchronize(; kwargs...) = vesync(; kwargs...)
-
