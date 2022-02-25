@@ -1,3 +1,5 @@
+using .GPUCompiler: classify_arguments, BITS_REF, BITS_VALUE
+
 struct VECompilerParams <: AbstractCompilerParams
     device::Int32
     global_hooks::NamedTuple
@@ -21,3 +23,18 @@ function GPUCompiler.check_invocation(job::VECompilerJob, entry::LLVM.Function)
     return
 end
 
+function GPUCompiler.process_entry!(@nospecialize(job::CompilerJob), mod::LLVM.Module,
+                                    entry::LLVM.Function)
+    ctx = context(mod)
+
+    if haskey(ENV, "JULIA_VE_ARGS") && ENV["JULIA_VE_ARGS"] == "1"
+        if job.source.kernel
+            args = classify_arguments(job, eltype(llvmtype(entry)))
+            for arg in args
+                @debug "arg : $arg"
+            end
+        end
+    end
+
+    return entry
+end

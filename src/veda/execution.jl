@@ -87,28 +87,27 @@ end
 
 # Pass structs on stack. If mutable, modified elements can be passed back, too.
 function Base.setindex!(args::VEArgs, val::T, idx::Integer) where {T}
-    @debug "setindex idx=$idx T=$T val=$val"
+    @debug("args setindex! idx=$idx T=$T val=$val")
     if isstructtype(T) && Base.datatype_pointerfree(T) # Pointers within structs can not be de-referenced
-        @debug "seems to be a struct"
+        @debug("arg $idx val=$val handled as struct")
         intent = ismutable(val) ? VEDA_ARGS_INTENT_INOUT : VEDA_ARGS_INTENT_IN
         ref = Ref(val)
         push!(args.objs, ref) # root the reference
         ptr = Base.unsafe_convert(Ptr{Cvoid}, ref)
         vedaArgsSetStack(args.handle, idx, ptr, intent, sizeof(T))
         val
-    elseif T <: VERefValue #&& isassigned(val[])
-        @debug "seems to be a VERefValue"
-        intent = ismutable(val[]) ? VEDA_ARGS_INTENT_INOUT : VEDA_ARGS_INTENT_IN
-        push!(args.objs, val) # root the reference
-        ptr = Base.unsafe_convert(Ptr{Cvoid}, Ref(val[]))
-        vedaArgsSetStack(args.handle, idx, ptr, intent, sizeof(val[]))
-        val
-    elseif T <: Base.RefValue && isassigned(val[])
-        @debug "seems to be a RefValue"
+    elseif T <: Base.RefValue && isassigned(val)
+        @debug("arg $idx val=$val handled as RefValue")
         intent = ismutable(val[]) ? VEDA_ARGS_INTENT_INOUT : VEDA_ARGS_INTENT_IN
         push!(args.objs, val) # root the reference
         ptr = Base.unsafe_convert(Ptr{Cvoid}, val)
+        sz = sizeof(val[])
+        @debug "converted ptr = $ptr size=$sz"
         vedaArgsSetStack(args.handle, idx, ptr, intent, sizeof(val[]))
+        val
+    elseif T <: Ptr{Nothing}
+        @debug("arg $idx val=$val handled as Ptr{Nothing}")
+        args[idx] = Base.bitcast(UInt64, val)
         val
     else
         error("VEArgs could not handle $T")
@@ -119,14 +118,15 @@ end
 # (this mimics `lower-ccall` in julia-syntax.scm)
 @generated function convert_args(veargs, ::Type{tt}, args...) where {tt}
     types = tt.parameters
+    @debug("types=$types tt=$tt")
 
     ex = quote
         Base.@_inline_meta
     end
 
-    # first arg is the kernel function, skip that
-    for i in 2:length(args)
-        push!(ex.args, :(veargs[$(i-2)] = args[$i]))
+    # veargs is zero indexed
+    for i in 1:length(args)
+        push!(ex.args, :(veargs[$(i-1)] = args[$i]))
     end
 
     return ex
@@ -143,12 +143,5 @@ function vecall(func::VEFunction, tt, args...; stream = C_NULL)
         throw(VEOCommandError("kernel launch failed"))
     end
     err, veargs
-end
-
-struct VEContextException <: Exception
-    reason::String
-end
-struct VEOCommandError <: Exception
-    reason::String
 end
 

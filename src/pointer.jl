@@ -132,9 +132,12 @@ Base.eltype(x::Type{<:VERef{T}}) where {T} = @isdefined(T) ? T : Any
 
 Base.convert(::Type{VERef{T}}, x::VERef{T}) where {T} = x
 
-# conversion or the actual ccall
+# conversion for the actual ccall
 Base.unsafe_convert(::Type{VERef{T}}, x::VERef{T}) where {T} = Base.bitcast(VERef{T}, Base.unsafe_convert(VEPtr{T}, x))
 Base.unsafe_convert(::Type{VERef{T}}, x) where {T} = Base.bitcast(VERef{T}, Base.unsafe_convert(VEPtr{T}, x))
+
+Base.unsafe_convert(::Type{VERef{T}}, x::Base.RefValue{T}) where {T} =
+    Base.bitcast(VERef{T}, Base.unsafe_convert(Ptr{T}, x))
 
 # VERef from literal pointer
 Base.convert(::Type{VERef{T}}, x::VEPtr{T}) where {T} = x
@@ -142,6 +145,13 @@ Base.convert(::Type{VERef{T}}, x::VEPtr{T}) where {T} = x
 # indirect constructors using VERef
 Base.convert(::Type{VERef{T}}, x) where {T} = VERef{T}(x)
 
+# dereferencing
+@inline Base.getindex(p::VERef{T}) where {T} = Base.bitcast(Ref{T}, p)[]
+@inline function Base.setindex(p::VERef{T}, x::T) where {T}
+    r = Base.bitcast(Ref{T}, p)
+    r[] = x
+    x
+end
 
 #
 # VE array pointer

@@ -1,14 +1,14 @@
 
-export @sync
+export @synchronize
 
 """
-    @sync ex
+    @synchronize ex
 
 Run expression `ex` and synchronize the VE afterwards.
 
 See also: [`synchronize`](@ref).
 """
-macro sync(ex)
+macro synchronize(ex)
     quote
         local ret = $(esc(ex))
         VectorEngine.synchronize()

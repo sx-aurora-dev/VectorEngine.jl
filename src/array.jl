@@ -30,7 +30,7 @@ mutable struct VEArray{T,N} <: AbstractGPUArray{T,N}
 end
 
 function unsafe_free!(xs::VEArray)
-  # this call should only have an effect once, becuase both the user and the GC can call it
+  # this call should only have an effect once, because both the user and the GC can call it
   if xs.state == ARRAY_FREED
     return
   elseif xs.state == ARRAY_UNMANAGED
@@ -270,7 +270,7 @@ function Base.unsafe_copyto!(      # not needed # ctx::ZeContext, dev::ZeDevice,
 
   # copies to the host are synchronizing
   #synchronize(global_queue(context(src), device(src)))
-  vesync()
+  synchronize()
 
   return dest
 end

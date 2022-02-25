@@ -21,6 +21,13 @@ Return the default stream.
 """
 @inline VEDefaultStream() = VEStream(convert(VEDAstream, C_NULL))
 
+struct VEContextException <: Exception
+    reason::String
+end
+struct VEOCommandError <: Exception
+    reason::String
+end
+
 """
     synchronize(s::VEStream)
 

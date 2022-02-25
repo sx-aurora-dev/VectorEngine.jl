@@ -1,6 +1,6 @@
 # VE execution support
 
-export @veda, vedaconvert, vefunction, vesync, synchronize
+export @veda, vedaconvert, vefunction
 
 ## high-level @cuda interface
 
@@ -98,7 +98,10 @@ Adapt.adapt_storage(to::Adaptor, p::VEPtr{T}) where {T} = reinterpret(Ptr{T}, p)
 #  x::T
 #end
 #Base.getindex(r::VERefValue) = r.x
-Adapt.adapt_structure(to::Adaptor, r::Base.RefValue) = VERefValue(adapt(to, r[]))
+#Adapt.adapt_structure(to::Adaptor, r::Base.RefValue) = VERefValue(adapt(to, r[]))
+
+#Adapt.adapt_structure(to::Adaptor, x::Base.RefValue{T}) where {T} =
+#    Base.unsafe_convert(VERef{T}, x)
 
 ## broadcast sometimes passes a ref(type), resulting in a GPU-incompatible DataType box.
 ## avoid that by using a special kind of ref that knows about the boxed type.
@@ -152,23 +155,23 @@ AbstractKernel
     args = (:F, (:( args[$i] ) for i in 1:length(args))...)
 
     # filter out ghost arguments that shouldn't be passed
-    predicate = dt -> isghosttype(dt) || Core.Compiler.isconstType(dt)
-    to_pass = map(!predicate, sig.parameters)
+    #predicate = dt -> isghosttype(dt) || Core.Compiler.isconstType(dt)
+    #to_pass = map(!predicate, sig.parameters)
+    to_pass = map(!isghosttype, sig.parameters)
     call_t =                  Type[x[1] for x in zip(sig.parameters,  to_pass) if x[2]]
     call_args = Union{Expr,Symbol}[x[1] for x in zip(args, to_pass)            if x[2]]
-
+    @debug("call_t=$call_t")
+    @debug("call_args=$call_args")
     # replace non-isbits arguments (they should be unused, or compilation would have failed)
     # alternatively, allow `launch` with non-isbits arguments.
-    #for (i,dt) in enumerate(call_t)
-    #    if !isbitstype(dt)
-    #        print("!isbitstype detected:")
-    #        @show i dt
-    #        # Enable passing non-isbitstype on stack
-    #        # TODO: find better way to identify types that actually can be passed
-    #        call_t[i] = Ptr{Any}
-    #        call_args[i] = :C_NULL
-    #    end
-    #end
+    # make sure the type is none of those passed on stack by VE.
+    for (i,dt) in enumerate(call_t)
+        if !isbitstype(dt) && !isstructtype(dt) && !(dt <: Base.RefValue)
+            @debug("!isbitstype detected: argument $i $dt")
+            call_t[i] = Ptr{Any}
+            call_args[i] = :C_NULL
+        end
+    end
 
     # finalize types
     call_tt = Base.to_tuple_type(call_t)
@@ -181,7 +184,7 @@ AbstractKernel
     end
 end
 
-isghosttype(dt) = !ismutable(dt) && sizeof(dt) == 0
+using LLVM, LLVM.Interop # for the correct definition of isghosttype
 
 """
     vefunction(f, tt=Tuple{}; kwargs...)

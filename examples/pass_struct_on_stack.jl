@@ -1,5 +1,4 @@
-# EXCLUDE FROM TESTING
-using VectorEngine
+using VectorEngine, Test
 
 mutable struct xm
       x::Int32
@@ -7,9 +6,8 @@ mutable struct xm
 end
 
 function pass_struct!(r::xm)
-    @veprintf("r.x=%d, r.m=%ld\n", r.x, r.m)
-    r.m = r.m + 1
-    @veprintf("r.m=%ld\n", r.m)
+    r.x -= 2
+    r.m += 1
     return
 end
 
@@ -17,4 +15,4 @@ a = xm(1, 100)
 
 @veda pass_struct!(a)
 synchronize()
-@show a
+@test a.x == -1 && a.m == 101
