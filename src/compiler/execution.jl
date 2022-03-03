@@ -39,7 +39,7 @@ macro veda(ex...)
     macro_kwargs, compiler_kwargs, call_kwargs, other_kwargs =
         split_kwargs(kwargs,
                      [:launch],
-                     [:name],
+                     [:name, :global_hooks],
                      [:stream])
     if !isempty(other_kwargs)
         key,val = first(other_kwargs).args
@@ -143,9 +143,6 @@ Low-level interface to call a compiled kernel, passing GPU-compatible arguments 
 For a higher-level interface, use [`@veda`](@ref).
 
 The following keyword arguments are supported:
-- `threads` (defaults to 1)
-- `blocks` (defaults to 1)
-- `shmem` (defaults to 0)
 - `stream` (defaults to the default stream)
 """
 AbstractKernel
@@ -194,14 +191,14 @@ a callable kernel object.
 
 The following keyword arguments are supported:
 - `name`: overrides the name that the kernel will have in the generated code
-- `device`: chooses which device to compile the kernel for
 - `global_hooks`: specifies maps from global variable name to initializer hook
 
 The output of this function is automatically cached, i.e. you can simply call `vefunction`
 in a hot path without degrading performance. New code will be generated automatically, when
 function definitions change, or when different types or keyword arguments are provided.
 """
-function vefunction(f::Core.Function, tt::Type=Tuple{}; name=nothing, device=0, global_hooks=NamedTuple(), kwargs...)
+function vefunction(f::Core.Function, tt::Type=Tuple{}; name=nothing, device=0,
+                    global_hooks=NamedTuple(), kwargs...)
     source = FunctionSpec(f, tt, true, name)
     cache = get!(()->Dict{UInt,Any}(), vefunction_cache, device)
     #isa = default_isa(device)

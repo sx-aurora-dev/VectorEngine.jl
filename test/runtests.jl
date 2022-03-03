@@ -22,9 +22,12 @@ include("setup.jl")
     @testset "Execution" begin
         include("execution.jl")
     end
-    @testset "Examples" begin
-        include("examples.jl")
+    @testset "Vectorize" begin
+        include("vectorize.jl")
     end
+    #@testset "Examples" begin
+    #    include("examples.jl")
+    #end
 
     
     #@testset "Device Tests" begin

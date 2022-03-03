@@ -22,7 +22,7 @@ mutable struct VEArray{T,N} <: AbstractGPUArray{T,N}
     Base.isbitstype(T)  || error("VEArray only supports bits types") # allocatedinline on 1.3+
     #ctx = context()
     #dev = device()
-    buf = Mem.Device(prod(dims) * sizeof(T))          # not needed # , Base.datatype_alignment(T))
+    buf = Mem.Device(prod(dims) * sizeof(T)) # not needed # , Base.datatype_alignment(T))
     obj = new{T,N}(buf, dims, ARRAY_MANAGED) # add these later # , ctx, dev)
     finalizer(unsafe_free!, obj)
     return obj

@@ -23,6 +23,7 @@ include("memory.jl")
 # because of generated functions.
 include(joinpath("device", "tools.jl"))
 include(joinpath("device", "pointer.jl"))
+include(joinpath("device", "globals.jl"))
 include(joinpath("device", "output.jl"))
 include(joinpath("device", "memory.jl"))
 include(joinpath("device", "array.jl"))
@@ -39,6 +40,7 @@ include(joinpath("compiler", "reflection.jl"))
 include("array.jl")
 
 # High-level functionality
+include("vectorize.jl")
 include("random.jl")
 include("utils.jl")
 end # module
