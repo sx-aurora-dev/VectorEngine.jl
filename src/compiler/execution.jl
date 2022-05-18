@@ -203,7 +203,7 @@ function vefunction(f::Core.Function, tt::Type=Tuple{}; name=nothing, device=0,
     cache = get!(()->Dict{UInt,Any}(), vefunction_cache, device)
     #isa = default_isa(device)
     target = VECompilerTarget()
-    params = VECompilerParams(device, global_hooks)
+    params = VECompilerParams(device, global_hooks, rv_loop_vectorize!)
     job = CompilerJob(target, source, params)
     GPUCompiler.cached_compilation(cache, job, vefunction_compile, vefunction_link)::HostKernel{f,tt}
 end

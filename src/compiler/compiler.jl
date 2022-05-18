@@ -3,6 +3,7 @@ using .GPUCompiler: classify_arguments, BITS_REF, BITS_VALUE
 struct VECompilerParams <: AbstractCompilerParams
     device::Int32
     global_hooks::NamedTuple
+    loop_vectorizer::Function
 end
 
 VECompilerJob = CompilerJob{VECompilerTarget, VECompilerParams}
