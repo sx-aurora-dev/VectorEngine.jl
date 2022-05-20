@@ -2,6 +2,8 @@
 
 # forward the rest to GPUCompiler with an appropriate CompilerJob
 
+using LLVM, LLVM.interop
+
 #
 # code_* replacements
 #
@@ -15,7 +17,7 @@ for method in (:code_typed, :code_warntype, :code_llvm, :code_native)
                          kernel::Bool=false, device=current_device(), kwargs...)
             source = FunctionSpec(func, Base.to_tuple_type(types), kernel)
             target = VECompilerTarget()
-            params = VECompilerParams(device, NamedTuple())
+            params = VECompilerParams(device, NamedTuple(), rv_loop_vectorize!)
             job = CompilerJob(target, source, params)
             GPUCompiler.$method($(args...); kwargs...)
         end
