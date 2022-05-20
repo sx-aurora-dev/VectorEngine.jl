@@ -75,8 +75,8 @@ end
     # make sure invalid kernels can be partially reflected upon
     let
         invalid_kernel() = throw()
-        @test_throws VectorEngine.VEDA.VEError @veda invalid_kernel()
-        @test_throws VectorEngine.VEDA.VEError @grab_output @device_code_warntype @veda invalid_kernel()
+        @test_throws VectorEngine.KernelError @veda invalid_kernel()
+        @test_throws VectorEngine.KernelError @grab_output @device_code_warntype @veda invalid_kernel()
         out, err = @grab_output begin
             try
                 @device_code_warntype @veda invalid_kernel()
