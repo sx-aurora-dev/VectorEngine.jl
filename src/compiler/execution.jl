@@ -213,7 +213,7 @@ const vefunction_cache = Dict{UInt,Dict{UInt,Any}}()
 function vefunction_compile(@nospecialize(job::CompilerJob))
     # compile
     method_instance, mi_meta = GPUCompiler.emit_julia(job)
-    ir, ir_meta = GPUCompiler.emit_llvm(job, method_instance)
+    ir, ir_meta = GPUCompiler.emit_llvm(job, method_instance; ctx=JuliaContext())
     kernel = ir_meta.entry
     if haskey(ENV, "JULIA_VE_IR") && ENV["JULIA_VE_IR"] == "1"
         @show ir
