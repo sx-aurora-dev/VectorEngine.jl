@@ -2,7 +2,7 @@
 
 # forward the rest to GPUCompiler with an appropriate CompilerJob
 
-using LLVM, LLVM.interop
+using LLVM
 
 #
 # code_* replacements
