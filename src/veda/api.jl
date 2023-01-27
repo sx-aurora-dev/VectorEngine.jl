@@ -3,7 +3,7 @@ using CEnum
 using Libdl
 
 # TODO: This is quite simplistic, better create a build of VEDA through Yggdrasil
-const libveda = Libdl.find_library("libveda.so.0", ["/usr/local/ve/veda/lib64/"])
+const libveda = Libdl.find_library("libveda.so", ["/opt/nec/ve/veos/lib64/"])
 if isempty(libveda)
     @warn "Could not find libveda, VectorEngine.jl will not function"
 end
